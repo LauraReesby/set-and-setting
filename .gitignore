@@ -83,3 +83,5 @@ Config.plist
 spec/**/__pycache__/
 spec/**/.DS_Store
 spec/**/.env
+
+WARP.md
