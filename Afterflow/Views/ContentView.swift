@@ -36,6 +36,8 @@ struct ContentView: View {
                     Button(action: { showingSessionForm = true }) {
                         Label("Add Session", systemImage: "plus")
                     }
+                    .accessibilityIdentifier("addSessionButton")
+                    .accessibilityLabel("Add Session")
                 }
             }
             .navigationTitle("Afterflow Sessions")

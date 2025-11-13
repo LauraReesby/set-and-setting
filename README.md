@@ -1,6 +1,6 @@
 # Afterflow
 
-*A private, offline-first iOS app for logging psychedelic-assisted therapy sessions*
+A private, offline-first iOS app for logging psychedelic-assisted therapy sessions
 
 ## Overview
 
@@ -126,10 +126,16 @@ Afterflow/
 │   └── TherapeuticSession.swift
 ├── Services/                  # Data services
 │   └── SessionDataService.swift
-├── Views/                     # SwiftUI views (in development)
-│   └── ContentView.swift
-├── ViewModels/               # Observable state management (planned)
-└── Assets.xcassets/          # App icons and colors
+├── Views/                     # SwiftUI views 
+│   ├── ContentView.swift
+│   ├── SessionFormView.swift
+│   └── Components/
+│       └── ValidationErrorView.swift
+├── ViewModels/               # Observable state management
+│   └── FormValidation.swift
+└── Resources/                # Assets, storyboards, and resources
+    ├── Assets.xcassets/      # App icons and colors
+    └── LaunchScreen.storyboard
 
 AfterflowTests/               # Test suites
 ├── ModelTests/
@@ -219,7 +225,6 @@ Afterflow collects **zero** personal data. All information stays on your device.
 
 - **Issues**: Report bugs or request features via GitHub Issues
 - **Documentation**: See `/specs` directory for detailed feature specifications
-- **Development Status**: Check `DEVELOPMENT_STATUS.md` for current progress
 
 ## License
 

@@ -7,10 +7,10 @@
 - [x] T004 [US1] Verify constitutional quality gates: 80% coverage, 100% public API coverage, TDD compliance.  
 
 ## Phase 2 – Session Form
-- [ ] T005 [US1] Build SessionFormView with date, type, intentions.  
-- [ ] T006 [US1] Validation + inline errors.  
-- [ ] T007 [US1] Keyboard navigation and dismiss behavior.  
-- [ ] T008 [US1] Date validation and normalization.  
+- [x] T005 [US1] Build SessionFormView with date, type, intentions.  
+- [x] T006 [US1] Validation + inline errors.  
+- [x] T007 [US1] Keyboard navigation and dismiss behavior.  
+- [x] T008 [US1] Date validation and normalization.  
 - [ ] T009 [US1] UI tests for form validation and keyboard flow.  
 - [ ] T010 [US1] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
 
