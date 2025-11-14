@@ -1,6 +1,16 @@
 import SwiftUI
+import Foundation
 
-// ValidationResult is defined in FormValidation.swift and should be accessible here
+/// A simple validation result representation for UI display
+struct ValidationDisplay {
+    let isValid: Bool
+    let message: String?
+    
+    init(isValid: Bool, message: String? = nil) {
+        self.isValid = isValid
+        self.message = message
+    }
+}
 
 /// A reusable SwiftUI view for displaying therapeutic validation errors
 /// with accessibility support and calming design
@@ -20,6 +30,7 @@ struct ValidationErrorView: View {
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("validation_suggestion_text")
                     .accessibilityLabel("Validation suggestion: \(message)")
                 
                 Spacer()
@@ -39,7 +50,7 @@ struct ValidationErrorView: View {
 
 /// A modifier that adds inline validation error display to form fields
 struct InlineValidationModifier: ViewModifier {
-    let validationResult: ValidationResult?
+    let validationResult: ValidationDisplay?
     
     func body(content: Content) -> some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -74,8 +85,34 @@ extension View {
     /// Adds inline validation error display to any view
     /// - Parameter validationResult: The validation result to display
     /// - Returns: A view with inline error display capability
-    func inlineValidation(_ validationResult: ValidationResult?) -> some View {
+    func inlineValidation(_ validationResult: ValidationDisplay?) -> some View {
         self.modifier(InlineValidationModifier(validationResult: validationResult))
+    }
+    
+    /// Convenience method for any validation result type with isValid and message properties
+    /// This uses reflection to extract the properties from any compatible type
+    func inlineValidation<T>(_ validationResult: T?) -> some View {
+        let display: ValidationDisplay? 
+        if let result = validationResult {
+            let mirror = Mirror(reflecting: result)
+            var isValid = true
+            var message: String? = nil
+            
+            // Extract isValid and message using reflection
+            for child in mirror.children {
+                if child.label == "isValid" {
+                    isValid = (child.value as? Bool) ?? true
+                }
+                if child.label == "message" {
+                    message = child.value as? String
+                }
+            }
+            display = ValidationDisplay(isValid: isValid, message: message)
+        } else {
+            display = nil
+        }
+        
+        return self.modifier(InlineValidationModifier(validationResult: display))
     }
 }
 
@@ -86,7 +123,7 @@ struct ValidationErrorView_Previews: PreviewProvider {
             // Example with error message
             TextField("Intention", text: .constant(""))
                 .textFieldStyle(.roundedBorder)
-                .inlineValidation(ValidationResult(
+                .inlineValidation(ValidationDisplay(
                     isValid: false,
                     message: "Please share what you hope to explore in this session"
                 ))
@@ -94,7 +131,7 @@ struct ValidationErrorView_Previews: PreviewProvider {
             // Example with no error
             TextField("Dosage", text: .constant("3.5g"))
                 .textFieldStyle(.roundedBorder)
-                .inlineValidation(ValidationResult(isValid: true, message: nil))
+                .inlineValidation(ValidationDisplay(isValid: true, message: nil))
             
             // Direct error view
             ValidationErrorView(message: "Please keep dosage brief for easier tracking")
@@ -106,7 +143,7 @@ struct ValidationErrorView_Previews: PreviewProvider {
         VStack(spacing: 20) {
             TextField("Intention", text: .constant(""))
                 .textFieldStyle(.roundedBorder)
-                .inlineValidation(ValidationResult(
+                .inlineValidation(ValidationDisplay(
                     isValid: false,
                     message: "Please share what you hope to explore in this session"
                 ))

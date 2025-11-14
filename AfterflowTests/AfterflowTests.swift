@@ -1,13 +1,21 @@
 import Testing
-import Foundation
 @testable import Afterflow
 
-struct AfterflowTests {
+struct AfterflowSmokeTests {
+    @Test("TherapeuticSession instances have unique identifiers")
+    func testTherapeuticSessionIdentity() {
+        let firstSession = TherapeuticSession()
+        let secondSession = TherapeuticSession()
+        
+        #expect(firstSession.id != secondSession.id)
+    }
     
-    @Test("App basic functionality")
-    func testBasicApp() async throws {
-        // Basic test to ensure the app module imports correctly
+    @Test("TherapeuticSession defaults honor therapeutic tone")
+    func testDefaultIntentionIsEmpty() {
         let session = TherapeuticSession()
-        #expect(session.id != UUID()) // Should have a unique ID
+        
+        #expect(session.intention.isEmpty)
+        #expect(session.moodBefore == 5)
+        #expect(session.moodAfter == 5)
     }
 }

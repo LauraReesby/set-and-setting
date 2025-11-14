@@ -4,14 +4,14 @@ import UIKit
 
 @main
 struct AfterflowApp: App {
-    var sharedModelContainer: ModelContainer = {
+    private static let sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TherapeuticSession.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -20,9 +20,7 @@ struct AfterflowApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .modelContainer(Self.sharedModelContainer)
         }
-        .modelContainer(for: [
-            TherapeuticSession.self,
-        ])
     }
 }

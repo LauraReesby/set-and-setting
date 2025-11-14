@@ -161,6 +161,7 @@ struct SessionDataServiceTests {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: TherapeuticSession.self, configurations: config)
         let service = SessionDataService(modelContext: container.mainContext)
+        service.clearDraft()
         let draftSession = TherapeuticSession(treatmentType: .psilocybin)
         
         service.saveDraft(draftSession)
@@ -168,6 +169,9 @@ struct SessionDataServiceTests {
         let recoveredDraft = service.recoverDraft()
         #expect(recoveredDraft != nil)
         #expect(recoveredDraft?.treatmentType == .psilocybin)
+        
+        let storedSessions = try service.fetchAllSessions()
+        #expect(storedSessions.isEmpty)
     }
     
     @Test("Clear draft removes saved draft")
@@ -177,6 +181,7 @@ struct SessionDataServiceTests {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: TherapeuticSession.self, configurations: config)
         let service = SessionDataService(modelContext: container.mainContext)
+        service.clearDraft()
         let draftSession = TherapeuticSession(treatmentType: .psilocybin)
         
         service.saveDraft(draftSession)
@@ -193,11 +198,26 @@ struct SessionDataServiceTests {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: TherapeuticSession.self, configurations: config)
         let service1 = SessionDataService(modelContext: container.mainContext)
-        
-        let recoveredDraft = service1.recoverDraft()
-        #expect(recoveredDraft == nil)
-        
         service1.clearDraft()
+        
+        let sessionDate = Date(timeIntervalSinceNow: -3600)
+        let draftSession = TherapeuticSession(
+            sessionDate: sessionDate,
+            treatmentType: .ayahuasca,
+            dosage: "2 cups",
+            administration: .oral,
+            intention: "Persist across instances"
+        )
+        
+        service1.saveDraft(draftSession)
+        
+        let service2 = SessionDataService(modelContext: container.mainContext)
+        let recoveredDraft = service2.recoverDraft()
+        #expect(recoveredDraft != nil)
+        #expect(recoveredDraft?.treatmentType == .ayahuasca)
+        #expect(recoveredDraft?.dosage == "2 cups")
+        #expect(recoveredDraft?.intention == "Persist across instances")
+        #expect(recoveredDraft?.sessionDate == sessionDate)
     }
     
     // MARK: - Validation Tests
@@ -323,6 +343,7 @@ struct SessionDataServiceTests {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: TherapeuticSession.self, configurations: config)
         let service = SessionDataService(modelContext: container.mainContext)
+        service.clearDraft()
         
         let sessions = try service.fetchAllSessions()
         #expect(sessions.isEmpty)

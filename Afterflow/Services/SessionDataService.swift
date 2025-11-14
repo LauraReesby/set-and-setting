@@ -147,26 +147,24 @@ class SessionDataService {
     
     // MARK: - Draft Recovery
     
-    /// Save a draft session for crash recovery
-    /// - Parameter session: The draft session to save
+    /// Save a draft session snapshot for crash recovery without inserting it into the store
+    /// - Parameter session: The draft session state to persist temporarily
     func saveDraft(_ session: TherapeuticSession) {
-        // Add a special marker to identify drafts
-        UserDefaults.standard.set(session.id.uuidString, forKey: "current_draft_id")
-        UserDefaults.standard.set(Date(), forKey: "draft_save_time")
-        
+        let draft = SessionDraft(session: session)
         do {
-            try createSession(session)
+            let data = try JSONEncoder().encode(draft)
+            UserDefaults.standard.set(data, forKey: DraftKeys.payload)
+            UserDefaults.standard.set(Date(), forKey: DraftKeys.timestamp)
         } catch {
-            print("Failed to save draft: \(error.localizedDescription)")
+            print("Failed to encode draft: \(error.localizedDescription)")
         }
     }
     
     /// Recover any existing draft session
     /// - Returns: Draft TherapeuticSession if one exists, nil otherwise
     func recoverDraft() -> TherapeuticSession? {
-        guard let draftIdString = UserDefaults.standard.string(forKey: "current_draft_id"),
-              let draftId = UUID(uuidString: draftIdString),
-              let draftSaveTime = UserDefaults.standard.object(forKey: "draft_save_time") as? Date else {
+        guard let draftSaveTime = UserDefaults.standard.object(forKey: DraftKeys.timestamp) as? Date,
+              let draftData = UserDefaults.standard.data(forKey: DraftKeys.payload) else {
             return nil
         }
         
@@ -178,23 +176,19 @@ class SessionDataService {
         }
         
         do {
-            let descriptor = FetchDescriptor<TherapeuticSession>(
-                predicate: #Predicate { session in
-                    session.id == draftId
-                }
-            )
-            let sessions = try modelContext.fetch(descriptor)
-            return sessions.first
+            let draft = try JSONDecoder().decode(SessionDraft.self, from: draftData)
+            return draft.makeSession()
         } catch {
             print("Failed to recover draft: \(error.localizedDescription)")
+            clearDraft()
             return nil
         }
     }
     
     /// Clear the current draft
     func clearDraft() {
-        UserDefaults.standard.removeObject(forKey: "current_draft_id")
-        UserDefaults.standard.removeObject(forKey: "draft_save_time")
+        UserDefaults.standard.removeObject(forKey: DraftKeys.payload)
+        UserDefaults.standard.removeObject(forKey: DraftKeys.timestamp)
     }
     
     // MARK: - Validation
@@ -224,6 +218,64 @@ class SessionDataService {
         }
         
         return errors
+    }
+}
+
+// MARK: - Draft Support
+
+private enum DraftKeys {
+    static let payload = "session_draft_payload"
+    static let timestamp = "session_draft_timestamp"
+}
+
+private struct SessionDraft: Codable {
+    let sessionDate: Date
+    let treatmentType: String
+    let dosage: String
+    let administration: String
+    let intention: String
+    let environmentNotes: String
+    let musicNotes: String
+    let moodBefore: Int
+    let moodAfter: Int
+    let reflections: String
+    let spotifyPlaylistURI: String?
+    let spotifyPlaylistName: String?
+    let spotifyPlaylistImageURL: String?
+    
+    init(session: TherapeuticSession) {
+        self.sessionDate = session.sessionDate
+        self.treatmentType = session.treatmentTypeRawValue
+        self.dosage = session.dosage
+        self.administration = session.administrationRawValue
+        self.intention = session.intention
+        self.environmentNotes = session.environmentNotes
+        self.musicNotes = session.musicNotes
+        self.moodBefore = session.moodBefore
+        self.moodAfter = session.moodAfter
+        self.reflections = session.reflections
+        self.spotifyPlaylistURI = session.spotifyPlaylistURI
+        self.spotifyPlaylistName = session.spotifyPlaylistName
+        self.spotifyPlaylistImageURL = session.spotifyPlaylistImageURL
+    }
+    
+    func makeSession() -> TherapeuticSession {
+        let session = TherapeuticSession(
+            sessionDate: sessionDate,
+            treatmentType: PsychedelicTreatmentType(rawValue: treatmentType) ?? .psilocybin,
+            dosage: dosage,
+            administration: AdministrationMethod(rawValue: administration) ?? .oral,
+            intention: intention,
+            environmentNotes: environmentNotes,
+            musicNotes: musicNotes,
+            moodBefore: moodBefore,
+            moodAfter: moodAfter,
+            reflections: reflections
+        )
+        session.spotifyPlaylistURI = spotifyPlaylistURI
+        session.spotifyPlaylistName = spotifyPlaylistName
+        session.spotifyPlaylistImageURL = spotifyPlaylistImageURL
+        return session
     }
 }
 

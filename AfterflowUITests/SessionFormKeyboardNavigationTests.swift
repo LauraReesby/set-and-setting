@@ -72,8 +72,8 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         XCTAssertTrue(dosageField.waitForExistence(timeout: 3), "Dosage field should exist")
         dosageField.tap()
         
-        // Give time for keyboard to appear
-        sleep(2)
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(waitForKeyboard(keyboard, appears: true), "Keyboard should appear after focusing dosage field")
         
         // Tap outside the text field - try a different approach since navigation bar tap might not work
         // Tap on a section header or form area
@@ -85,12 +85,7 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
             app.navigationBars["New Session"].tap()
         }
         
-        // Give a moment for the tap to be processed
-        sleep(2)
-        
-        // Verify keyboard is dismissed - this is hard to test directly, so we'll just verify the test runs
-        // In a real test, we would check if the keyboard is hidden, but that's complex in XCUITest
-        print("Tap gesture completed - keyboard should be dismissed")
+        XCTAssertTrue(waitForKeyboard(keyboard, appears: false), "Keyboard should dismiss after tapping outside")
     }
     
     func testKeyboardToolbarDoneButton() throws {
@@ -101,14 +96,13 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         let dosageField = app.textFields["dosageField"]
         dosageField.tap()
         
-        // Wait for keyboard to appear and then tap done button in keyboard toolbar
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(waitForKeyboard(keyboard, appears: true), "Keyboard should appear for dosage field")
+        
         if app.keyboards.buttons["Done"].waitForExistence(timeout: 2) {
             app.keyboards.buttons["Done"].tap()
             
-            // Give a moment for the action to be processed
-            sleep(1)
-            
-            // Verify keyboard is dismissed
+            XCTAssertTrue(waitForKeyboard(keyboard, appears: false), "Keyboard should dismiss after tapping Done")
             XCTAssertFalse(dosageField.hasKeyboardFocus, "Field should lose focus after tapping Done")
         }
     }
@@ -117,9 +111,6 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         let app = XCUIApplication()
         navigateToSessionForm(app)
         
-        // Wait for form to be ready
-        sleep(1)
-        
         // Fill out required dosage field first
         let dosageField = app.textFields["dosageField"]
         XCTAssertTrue(dosageField.waitForExistence(timeout: 5), "Dosage field should exist")
@@ -127,8 +118,7 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         dosageField.typeText("2.5g")
         
         // Tap outside to dismiss any keyboard
-        app.tap()
-        sleep(1)
+        dismissKeyboardIfPresent(app)
         
         // Now test the intention field (last field)
         let intentionField = app.textFields["intentionField"]
@@ -136,11 +126,11 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         
         // Tap to focus and activate keyboard
         intentionField.tap()
-        sleep(1)
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(waitForKeyboard(keyboard, appears: true), "Keyboard should appear for intention field")
         
         // Type some text
         intentionField.typeText("Test intention")
-        sleep(1)
         
         // The main test: verify we can interact with the field successfully
         // We don't need to test keyboard dismissal extensively - that's OS behavior
@@ -157,9 +147,6 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         let app = XCUIApplication()
         navigateToSessionForm(app)
         
-        // Wait for form to fully load with longer timeout
-        sleep(2)
-        
         // Test dosage field accessibility
         let dosageField = app.textFields["dosageField"]
         print("DEBUG: Looking for dosage field...")
@@ -168,24 +155,14 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         // Verify basic properties exist before testing accessibility
         if dosageField.exists {
             print("DEBUG: Dosage field exists, testing accessibility...")
-            // Don't fail on isAccessibilityElement as it might not be reliable in tests
-            
-            // Test that we can interact with it (more reliable than accessibility properties)
             dosageField.tap()
-            sleep(1)
+            XCTAssertTrue(waitForKeyboard(app.keyboards.firstMatch, appears: true), "Keyboard should appear for dosage field input")
+            dosageField.clearText(app: app)
             dosageField.typeText("3.5g")
             XCTAssertEqual(dosageField.value as? String, "3.5g", "Should be able to enter text in dosage field")
             
-            // Clear the field
-            dosageField.doubleTap()
-            sleep(1)
-            if app.keyboards.keys["delete"].exists {
-                app.keyboards.keys["delete"].tap()
-            }
-            
             // Ensure keyboard is dismissed before moving to next field
-            app.tap() // Tap outside to dismiss keyboard
-            sleep(1)
+            dismissKeyboardIfPresent(app)
         }
         
         // Test intention field accessibility  
@@ -197,13 +174,11 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
             print("DEBUG: Intention field exists, testing interaction...")
             
             // Make sure no keyboard is active before tapping
-            if app.keyboards.count > 0 {
-                app.tap() // Dismiss any existing keyboard
-                sleep(1)
-            }
+            dismissKeyboardIfPresent(app)
             
             intentionField.tap()
-            sleep(2) // Give more time for keyboard to appear and focus to transfer
+            XCTAssertTrue(waitForKeyboard(app.keyboards.firstMatch, appears: true), "Keyboard should appear for intention field input")
+            intentionField.clearText(app: app)
             intentionField.typeText("Test intention")
             XCTAssertEqual(intentionField.value as? String, "Test intention", "Should be able to enter text in intention field")
             
@@ -234,10 +209,42 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         XCTAssertTrue(cancelButton.exists, "Cancel button should exist")
         XCTAssertTrue(saveButton.exists, "Save button should exist")
     }
+    
+    // MARK: - Helpers
+    
+    @discardableResult
+    private func waitForKeyboard(_ keyboard: XCUIElement, appears: Bool, timeout: TimeInterval = 3) -> Bool {
+        let predicate = NSPredicate(format: "exists == %@", NSNumber(value: appears))
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: keyboard)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+    
+    private func dismissKeyboardIfPresent(_ app: XCUIApplication) {
+        let keyboard = app.keyboards.firstMatch
+        if keyboard.exists {
+            app.tap()
+            _ = waitForKeyboard(keyboard, appears: false)
+        }
+    }
 }
 
 extension XCUIElement {
     var hasKeyboardFocus: Bool {
         return self.value(forKey: "hasKeyboardFocus") as? Bool ?? false
+    }
+    
+    func clearText(app: XCUIApplication) {
+        guard let currentValue = self.value as? String, !currentValue.isEmpty else { return }
+        tap()
+        press(forDuration: 1.0)
+        let selectAll = app.menuItems["Select All"]
+        if selectAll.waitForExistence(timeout: 1) {
+            selectAll.tap()
+            app.typeText(XCUIKeyboardKey.delete.rawValue)
+            return
+        }
+        
+        let deleteSequence = String(repeating: XCUIKeyboardKey.delete.rawValue, count: currentValue.count)
+        app.typeText(deleteSequence)
     }
 }

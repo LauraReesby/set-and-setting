@@ -8,6 +8,7 @@ import SwiftData
 struct SessionFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @State private var sessionDataService: SessionDataService?
     
     // MARK: - Form State
     @State private var sessionDate = Date()
@@ -30,6 +31,7 @@ struct SessionFormView: View {
     @State private var dateValidation: ValidationResult?
     @State private var dosageValidation: ValidationResult?
     @State private var validationTask: Task<Void, Never>?
+    @State private var draftSaveTask: Task<Void, Never>?
     
     // MARK: - UI State
     @State private var isLoading = false
@@ -53,7 +55,7 @@ struct SessionFormView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section {
                     DatePicker(
@@ -101,6 +103,9 @@ struct SessionFormView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .onChange(of: selectedTreatmentType) { _, _ in
+                        scheduleDraftSave()
+                    }
                     
                     TextField("Dosage (e.g., 3.5g, 100μg)", text: $dosage)
                         .textContentType(.none)
@@ -112,6 +117,7 @@ struct SessionFormView: View {
                         }
                         .onChange(of: dosage) { oldValue, newValue in
                             debounceValidation()
+                            scheduleDraftSave()
                         }
                         .inlineValidation(dosageValidation)
                         .accessibilityIdentifier("dosageField")
@@ -124,6 +130,9 @@ struct SessionFormView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .onChange(of: selectedAdministration) { _, _ in
+                        scheduleDraftSave()
+                    }
                 } header: {
                     Text("Treatment")
                         .font(.headline)
@@ -147,6 +156,7 @@ struct SessionFormView: View {
                     }
                     .onChange(of: intention) { oldValue, newValue in
                         debounceValidation()
+                        scheduleDraftSave()
                     }
                     .inlineValidation(intentionValidation)
                     .accessibilityIdentifier("intentionField")
@@ -211,6 +221,9 @@ struct SessionFormView: View {
                 }
             }
         }
+        .onDisappear {
+            draftSaveTask?.cancel()
+        }
     }
     
     // MARK: - Validation Methods
@@ -238,6 +251,7 @@ struct SessionFormView: View {
         }
         
         debounceValidation()
+        scheduleDraftSave()
     }
     
     private func debounceValidation() {
@@ -269,6 +283,11 @@ struct SessionFormView: View {
     // MARK: - Lifecycle
     
     private func setupInitialState() {
+        let service = ensureDataService()
+        if let draft = service.recoverDraft() {
+            applyDraft(draft)
+        }
+        
         // Perform initial validation
         Task { @MainActor in
             performValidation()
@@ -302,6 +321,7 @@ struct SessionFormView: View {
         }
         
         isLoading = true
+        defer { isLoading = false }
         
         let newSession = TherapeuticSession(
             sessionDate: normalizedDate,
@@ -312,13 +332,13 @@ struct SessionFormView: View {
         )
         
         do {
-            modelContext.insert(newSession)
-            try modelContext.save()
+            let service = ensureDataService()
+            try service.createSession(newSession)
+            service.clearDraft()
             
             // Success - dismiss the form
             dismiss()
         } catch {
-            isLoading = false
             showError(message: "Unable to save session: \(error.localizedDescription)")
         }
     }
@@ -326,6 +346,46 @@ struct SessionFormView: View {
     private func showError(message: String) {
         errorMessage = message
         showError = true
+    }
+    
+    @discardableResult
+    private func ensureDataService() -> SessionDataService {
+        if let service = sessionDataService {
+            return service
+        }
+        
+        let service = SessionDataService(modelContext: modelContext)
+        sessionDataService = service
+        return service
+    }
+    
+    private func applyDraft(_ draft: TherapeuticSession) {
+        sessionDate = draft.sessionDate
+        selectedTreatmentType = draft.treatmentType
+        dosage = draft.dosage
+        selectedAdministration = draft.administration
+        intention = draft.intention
+    }
+    
+    private func scheduleDraftSave() {
+        draftSaveTask?.cancel()
+        let snapshot = buildDraftSnapshot()
+        draftSaveTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+            ensureDataService().saveDraft(snapshot)
+        }
+    }
+    
+    private func buildDraftSnapshot() -> TherapeuticSession {
+        let normalizedDate = validator.normalizeSessionDate(sessionDate)
+        return TherapeuticSession(
+            sessionDate: normalizedDate,
+            treatmentType: selectedTreatmentType,
+            dosage: dosage,
+            administration: selectedAdministration,
+            intention: intention
+        )
     }
 }
 
