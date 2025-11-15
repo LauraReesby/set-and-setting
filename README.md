@@ -118,6 +118,20 @@ Current test coverage includes:
 - **UI Tests** (`AfterflowUITests/`): User interface workflow testing
 - **Performance Tests**: Data handling and app launch metrics
 
+## Formatting & Linting
+
+SwiftFormat and SwiftLint enforce consistent style across the app and test targets.
+
+1. Install the tools if necessary: `brew install swiftformat swiftlint`
+2. Run the repo scripts before every pull request:
+
+```bash
+./Scripts/run-swiftformat.sh
+./Scripts/run-swiftlint.sh
+```
+
+Resolve all violations (or document intentional suppressions) so CI stays clean.
+
 ## Project Structure
 
 ```

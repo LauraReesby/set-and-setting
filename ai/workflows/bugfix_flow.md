@@ -13,6 +13,7 @@ Use this flow for production regressions or test failures without new feature sc
    - Produce a minimal change plan noting files touched and tests to add/regressions to cover.
    - Highlight any privacy or data migration impact up front.
 4. **Fix & Test**
+   - Run `./Scripts/run-swiftformat.sh` and `./Scripts/run-swiftlint.sh` to ensure new code meets formatting rules.
    - Write a regression test first; confirm it fails.
    - Apply the fix respecting the style guide; keep logs private-safe.
    - Run `xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'` plus any targeted suites mentioned in the issue.

@@ -14,6 +14,7 @@ Applies to any new capability driven by `specs/<id>-*/`. Follow this exact order
    - Reference `ai/globals/style_guide.md` for formatting and naming.
    - Keep commits incremental and reference the spec ID.
 4. **Testing & Validation**
+   - Run `./Scripts/run-swiftformat.sh` and `./Scripts/run-swiftlint.sh`; fix any violations before testing.
    - Write/execute unit + UI tests via `xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'`.
    - Use `-only-testing:` flags for fast iteration but always finish with the full suite.
    - Record coverage evidence (≥80%) plus any measurements tied to the spec’s performance goals.

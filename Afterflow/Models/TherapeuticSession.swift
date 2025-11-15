@@ -13,10 +13,10 @@ enum PsychedelicTreatmentType: String, CaseIterable {
     case ayahuasca = "Ayahuasca"
     case mescaline = "Mescaline"
     case cannabis = "Cannabis"
-    
+
     /// Display name for UI
     var displayName: String {
-        return rawValue
+        rawValue
     }
 }
 
@@ -27,10 +27,10 @@ enum AdministrationMethod: String, CaseIterable {
     case oral = "Oral"
     case nasal = "Nasal"
     case other = "Other"
-    
+
     /// Display name for UI
     var displayName: String {
-        return rawValue
+        rawValue
     }
 }
 
@@ -40,87 +40,86 @@ enum AdministrationMethod: String, CaseIterable {
 /// - Offline-First: Works completely without network
 @Model
 final class TherapeuticSession {
-    
     // MARK: - Core Session Properties
-    
+
     /// Unique identifier for the session
     var id: UUID
-    
+
     /// When this session occurred
     var sessionDate: Date
-    
+
     /// Type of psychedelic therapeutic experience (stored as String)
-    internal var treatmentTypeRawValue: String
-    
+    var treatmentTypeRawValue: String
+
     /// Type of psychedelic therapeutic experience (computed from enum)
     var treatmentType: PsychedelicTreatmentType {
         get {
-            return PsychedelicTreatmentType(rawValue: treatmentTypeRawValue) ?? .psilocybin
+            PsychedelicTreatmentType(rawValue: self.treatmentTypeRawValue) ?? .psilocybin
         }
         set {
-            treatmentTypeRawValue = newValue.rawValue
+            self.treatmentTypeRawValue = newValue.rawValue
         }
     }
-    
+
     /// Dosage information as a free-form string (e.g., "3.5g dried", "100μg", "50mg")
     var dosage: String
-    
+
     /// Administration method (stored as String)
-    internal var administrationRawValue: String
-    
+    var administrationRawValue: String
+
     /// Administration method (computed from enum)
     var administration: AdministrationMethod {
         get {
-            return AdministrationMethod(rawValue: administrationRawValue) ?? .oral
+            AdministrationMethod(rawValue: self.administrationRawValue) ?? .oral
         }
         set {
-            administrationRawValue = newValue.rawValue
+            self.administrationRawValue = newValue.rawValue
         }
     }
-    
+
     /// User's intention going into the session
     var intention: String
-    
+
     /// When this record was created
     var createdAt: Date
-    
+
     /// When this record was last modified
     var updatedAt: Date
-    
+
     // MARK: - Environment & Setting
-    
+
     /// Description of the physical environment
     var environmentNotes: String
-    
+
     /// Music notes or playlist information
     var musicNotes: String
-    
+
     // MARK: - Mood Tracking
-    
+
     /// Mood rating before session (1-10 scale)
     var moodBefore: Int
-    
+
     /// Mood rating after session (1-10 scale)
     var moodAfter: Int
-    
+
     // MARK: - Reflection
-    
+
     /// Post-session reflections and insights
     var reflections: String
-    
+
     // MARK: - Spotify Integration (Optional)
-    
+
     /// Spotify playlist URI (optional, from Feature 002)
     var spotifyPlaylistURI: String?
-    
+
     /// Spotify playlist name for display (optional)
     var spotifyPlaylistName: String?
-    
+
     /// Spotify playlist cover art URL (optional)
     var spotifyPlaylistImageURL: String?
-    
+
     // MARK: - Initialization
-    
+
     init(
         sessionDate: Date = Date(),
         treatmentType: PsychedelicTreatmentType = .psilocybin,
@@ -146,7 +145,7 @@ final class TherapeuticSession {
         self.reflections = reflections
         self.createdAt = Date()
         self.updatedAt = Date()
-        
+
         // Spotify fields default to nil (optional integration)
         self.spotifyPlaylistURI = nil
         self.spotifyPlaylistName = nil
@@ -157,44 +156,42 @@ final class TherapeuticSession {
 // MARK: - Computed Properties
 
 extension TherapeuticSession {
-    
     /// Human-readable session title for UI display
     var displayTitle: String {
-        return "\(treatmentType.displayName) • \(sessionDate.formatted(date: .abbreviated, time: .omitted))"
+        "\(self.treatmentType.displayName) • \(self.sessionDate.formatted(date: .abbreviated, time: .omitted))"
     }
-    
+
     /// Mood change from before to after session
     var moodChange: Int {
-        return moodAfter - moodBefore
+        self.moodAfter - self.moodBefore
     }
-    
+
     /// Whether this session has Spotify playlist attached
     var hasSpotifyPlaylist: Bool {
-        return spotifyPlaylistURI != nil && !spotifyPlaylistURI!.isEmpty
+        self.spotifyPlaylistURI != nil && !self.spotifyPlaylistURI!.isEmpty
     }
-    
+
     /// Validation for required fields and psychedelic treatment types
     var isValid: Bool {
-        return !intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-               moodBefore >= 1 && moodBefore <= 10 &&
-               moodAfter >= 1 && moodAfter <= 10
+        !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            self.moodBefore >= 1 && self.moodBefore <= 10 &&
+            self.moodAfter >= 1 && self.moodAfter <= 10
     }
 }
 
 // MARK: - Data Management
 
 extension TherapeuticSession {
-    
     /// Update the modification timestamp
     func markAsUpdated() {
         self.updatedAt = Date()
     }
-    
+
     /// Clear all Spotify-related data (for disconnection)
     func clearSpotifyData() {
         self.spotifyPlaylistURI = nil
         self.spotifyPlaylistName = nil
         self.spotifyPlaylistImageURL = nil
-        markAsUpdated()
+        self.markAsUpdated()
     }
 }

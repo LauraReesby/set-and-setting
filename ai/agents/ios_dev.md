@@ -16,7 +16,7 @@ Use this file when Codex CLI or Copilot modifies SwiftUI/SwiftData code. It cons
 1. **Sync Context** – Open `specs/<active>` and tasks.md; summarize user intent before coding.
 2. **Plan First** – Produce a change plan (Codex planning tool / Copilot approval) describing touched files and tests.
 3. **Implement with Privacy Guardrails** – No networked dependencies without approval; keep therapeutic data local and avoid logging secrets.
-4. **Test Authoritatively** – `xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'`; add focused `-only-testing:` runs while iterating.
+4. **Format, Lint & Test** – Run `./Scripts/run-swiftformat.sh` and `./Scripts/run-swiftlint.sh` before executing `./Scripts/test-app.sh --destination 'platform=iOS Simulator,name=iPhone 16'`; add focused `-only-testing:` runs while iterating.
 5. **Document & Commit** – Reference spec IDs using `feat(session): ... (001-core-session-logging)` style and capture coverage evidence in PR template.
 
 ## Coding Notes
@@ -28,6 +28,7 @@ Use this file when Codex CLI or Copilot modifies SwiftUI/SwiftData code. It cons
 ## Checklists
 - [ ] Constitution reviewed for this change.
 - [ ] Spec + tasks consulted.
+- [ ] `./Scripts/run-swiftformat.sh` + `./Scripts/run-swiftlint.sh` executed successfully.
 - [ ] Tests written/updated before implementation.
 - [ ] `xcodebuild test ...` executed successfully.
 - [ ] Privacy/offline impact noted in PR body.

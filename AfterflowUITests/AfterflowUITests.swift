@@ -1,7 +1,6 @@
 import XCTest
 
 final class AfterflowUITests: XCTestCase {
-
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
@@ -10,12 +9,9 @@ final class AfterflowUITests: XCTestCase {
         // Clean up code
     }
 
-    @MainActor
-    func testAppLaunches() throws {
-        let app = XCUIApplication()
+    @MainActor func testAppLaunches() throws {
+        let app = self.makeApp()
         app.launch()
-        
-        // Basic test to ensure app launches without crashing
-        XCTAssertTrue(app.exists)
+        XCTAssertTrue(app.wait(for: .runningForeground, timeout: 5))
     }
 }

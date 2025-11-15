@@ -1,32 +1,41 @@
 import XCTest
 
 final class SessionFormValidationUITests: XCTestCase {
-
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
 
-    override func tearDownWithError() throws { }
-
     func testSaveButtonEnablesAfterValidInput() throws {
-        let app = XCUIApplication()
-        let intentionField = presentSessionForm(app)
+        let app = self.makeApp()
+        self.presentSessionForm(app)
+
+        let dosageField = app.textFields["dosageField"]
+        XCTAssertTrue(dosageField.waitForExistence(timeout: 2))
+        dosageField.tap()
+        dosageField.typeText("2g")
+        if app.keyboards.buttons["Next"].waitForExistence(timeout: 1) {
+            app.keyboards.buttons["Next"].tap()
+        }
+
+        let intentionField = app.textFields["intentionField"]
+        XCTAssertTrue(intentionField.waitForExistence(timeout: 2))
+        intentionField.typeText("Grounding intention")
 
         let saveButton = app.navigationBars["New Session"].buttons["Save"]
         XCTAssertTrue(saveButton.waitForExistence(timeout: 2), "Save button should exist")
 
-        intentionField.tap()
-        intentionField.typeText("Grounding intention")
-
         let enabledPredicate = NSPredicate(format: "isEnabled == true")
         let enabledExpectation = XCTNSPredicateExpectation(predicate: enabledPredicate, object: saveButton)
-        XCTAssertEqual(XCTWaiter.wait(for: [enabledExpectation], timeout: 3), .completed, "Save button should enable once required fields are valid")
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [enabledExpectation], timeout: 3),
+            .completed,
+            "Save button should enable once required fields are valid"
+        )
     }
 
     // MARK: - Helpers
 
-    @discardableResult
-    private func presentSessionForm(_ app: XCUIApplication) -> XCUIElement {
+    private func presentSessionForm(_ app: XCUIApplication) {
         app.launch()
 
         let addSessionButton = app.buttons["addSessionButton"]
@@ -35,10 +44,5 @@ final class SessionFormValidationUITests: XCTestCase {
 
         let formNavBar = app.navigationBars["New Session"]
         XCTAssertTrue(formNavBar.waitForExistence(timeout: 3), "Session form should appear")
-
-        let intentionField = app.textFields["intentionField"]
-        XCTAssertTrue(intentionField.waitForExistence(timeout: 2), "Intention field should exist")
-        return intentionField
     }
-
 }

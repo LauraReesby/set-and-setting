@@ -10,6 +10,12 @@ Applies to every agent touching Swift, Markdown, or automation scripts. Suppleme
 - View models must be `@Observable` or `ObservableObject` with clearly named `@Published` state.
 - Services throw strongly typed errors; prefer `Result` for async call sites.
 
+## SwiftFormat & SwiftLint
+- SwiftFormat config lives in `.swiftformat`; run `./Scripts/run-swiftformat.sh` before committing.
+- SwiftLint config lives in `.swiftlint.yml`; run `./Scripts/run-swiftlint.sh` after formatting (CI uses the same settings).
+- Fix or document every violation—prefer refactoring over disabling rules inline.
+- When formatting or linting adds effort, update the corresponding configuration in the same change so the rule set stays versioned with the code.
+
 ## Documentation & Comments
 - Prefer expressive naming over comments; add a short comment only before non-obvious logic (e.g., privacy-sensitive persistence, data migrations).
 - Update `specs/<id>/spec.md` when implementation deviates from the original assumption.

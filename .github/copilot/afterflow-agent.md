@@ -127,6 +127,8 @@ final class SessionFormViewModel {
 ```
 
 ### Testing Requirements
+- **Formatting**: Run `swift package format` (or `./Scripts/run-swiftformat.sh`) to apply repository conventions before linting/testing.
+- **Linting**: Run `swift package lint` (or `./Scripts/run-swiftlint.sh`) and fix all violations before requesting review.
 - **Unit Tests**: All models, ViewModels, services (90%+ coverage)
 - **UI Tests**: Critical user workflows (session creation, viewing, editing)
 - **Integration Tests**: SwiftData persistence, Spotify OAuth

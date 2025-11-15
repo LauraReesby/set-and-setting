@@ -32,5 +32,7 @@ Central reference for all automation agents working in Afterflow. Load this docu
 
 ## Shared Expectations
 - All agents must report how they satisfied the Constitution and cite specs/sections touched.
-- Tests (`xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'`) run before marking tasks complete.
+- Use the automation scripts in `/Scripts` for consistency (format, lint, build, run, and test all wrap `xcodebuild` with the right defaults).
+- Format with `./Scripts/run-swiftformat.sh`, then lint with `./Scripts/run-swiftlint.sh` before marking tasks complete.
+- Tests (`xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'`) run before marking tasks complete (or use `./Scripts/test-app.sh` with a specific destination).
 - Privacy and offline guarantees trump velocity—escalate if a request violates them.

@@ -27,6 +27,8 @@
 		82DA2AAC2EC7F89A00A0CAE9 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		82DA2AAD2EC7F89A00A0CAE9 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		82DA2AB92EC7F89A00A0CAE9 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		82DA2AC72EC7FBE100A0CAE9 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = .swiftlint.yml; sourceTree = "<group>"; };
+		82DA2ACB2EC7FEAE00A0CAE9 /* .swiftformat */ = {isa = PBXFileReference; lastKnownFileType = text; path = .swiftformat; sourceTree = "<group>"; };
 		82E012CA2EBC3CE500A7B115 /* Afterflow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Afterflow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		82E012D92EBC3CE600A7B115 /* AfterflowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AfterflowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		82E012E32EBC3CE600A7B115 /* AfterflowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AfterflowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,6 +48,11 @@
 		82DA2AC62EC7F89A00A0CAE9 /* specs */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = specs;
+			sourceTree = "<group>";
+		};
+		82DA2AC92EC7FBE100A0CAE9 /* Scripts */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Scripts;
 			sourceTree = "<group>";
 		};
 		82E012CC2EBC3CE500A7B115 /* Afterflow */ = {
@@ -100,6 +107,9 @@
 				82DA2AAB2EC7F89A00A0CAE9 /* .github */,
 				82DA2AAC2EC7F89A00A0CAE9 /* .gitignore */,
 				82DA2AAD2EC7F89A00A0CAE9 /* AGENTS.md */,
+				82DA2AC72EC7FBE100A0CAE9 /* .swiftlint.yml */,
+				82DA2ACB2EC7FEAE00A0CAE9 /* .swiftformat */,
+				82DA2AC92EC7FBE100A0CAE9 /* Scripts */,
 				82DA2AB82EC7F89A00A0CAE9 /* ai */,
 				82DA2AB92EC7F89A00A0CAE9 /* README.md */,
 				82DA2AC62EC7F89A00A0CAE9 /* specs */,

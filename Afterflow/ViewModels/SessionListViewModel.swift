@@ -1,0 +1,70 @@
+//  Constitutional Compliance: Offline-First List Filters
+
+import Foundation
+
+struct SessionListViewModel {
+    enum SortOption: String, CaseIterable, Identifiable {
+        case newestFirst
+        case oldestFirst
+        case moodChange
+
+        var id: String { self.rawValue }
+
+        var label: String {
+            switch self {
+            case .newestFirst:
+                return "Newest First"
+            case .oldestFirst:
+                return "Oldest First"
+            case .moodChange:
+                return "Biggest Mood Lift"
+            }
+        }
+    }
+
+    var sortOption: SortOption = .newestFirst
+    var treatmentFilter: PsychedelicTreatmentType?
+    var searchText: String = ""
+
+    func applyFilters(to sessions: [TherapeuticSession]) -> [TherapeuticSession] {
+        var filtered = sessions
+
+        if let treatmentFilter {
+            filtered = filtered.filter { $0.treatmentType == treatmentFilter }
+        }
+
+        let trimmedQuery = self.searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedQuery.isEmpty {
+            filtered = filtered.filter { session in
+                session.intention.lowercased().contains(trimmedQuery.lowercased())
+            }
+        }
+
+        switch self.sortOption {
+        case .newestFirst:
+            filtered.sort { $0.sessionDate > $1.sessionDate }
+        case .oldestFirst:
+            filtered.sort { $0.sessionDate < $1.sessionDate }
+        case .moodChange:
+            filtered.sort {
+                $0.moodChange == $1.moodChange
+                    ? $0.sessionDate > $1.sessionDate
+                    : $0.moodChange > $1.moodChange
+            }
+        }
+
+        return filtered
+    }
+
+    var currentFilterDescription: String {
+        if let treatmentFilter {
+            return "\(treatmentFilter.displayName) • \(self.sortOption.label)"
+        }
+        return self.sortOption.label
+    }
+
+    mutating func clearFilters() {
+        self.treatmentFilter = nil
+        self.searchText = ""
+    }
+}

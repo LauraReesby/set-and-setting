@@ -11,70 +11,69 @@ import SwiftUI
 /// - SwiftData Native: Uses Apple's native framework for data persistence
 @Observable
 class SessionDataService {
-    
     // MARK: - Properties
-    
+
     /// The SwiftData model context for persistence operations
     private let modelContext: ModelContext
-    
+
     /// Timer for auto-save functionality
     private var autoSaveTimer: Timer?
-    
+
     /// Tracks if there are unsaved changes
     private var hasUnsavedChanges = false
-    
+
     /// Auto-save interval (5 seconds as per constitutional requirements)
     private let autoSaveInterval: TimeInterval = 5.0
-    
+
     // MARK: - Initialization
-    
+
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
-        setupAutoSave()
+        self.setupAutoSave()
     }
-    
+
     deinit {
         autoSaveTimer?.invalidate()
     }
-    
+
     // MARK: - CRUD Operations
-    
+
     /// Create a new therapy session
     /// - Parameter session: The TherapeuticSession to save
     /// - Throws: Any persistence-related errors
     func createSession(_ session: TherapeuticSession) throws {
-        modelContext.insert(session)
-        markUnsavedChanges()
-        try saveContext()
+        self.modelContext.insert(session)
+        self.markUnsavedChanges()
+        try self.saveContext()
     }
-    
+
     /// Update an existing therapy session
     /// - Parameter session: The TherapeuticSession to update
     /// - Throws: Any persistence-related errors
     func updateSession(_ session: TherapeuticSession) throws {
         session.markAsUpdated()
-        markUnsavedChanges()
-        try saveContext()
+        self.markUnsavedChanges()
+        try self.saveContext()
     }
-    
+
     /// Delete a therapy session
     /// - Parameter session: The TherapeuticSession to delete
     /// - Throws: Any persistence-related errors
     func deleteSession(_ session: TherapeuticSession) throws {
-        modelContext.delete(session)
-        markUnsavedChanges()
-        try saveContext()
+        self.modelContext.delete(session)
+        self.markUnsavedChanges()
+        try self.saveContext()
     }
-    
+
     /// Fetch all therapy sessions, sorted by date (newest first)
     /// - Returns: Array of TherapeuticSession objects
     func fetchAllSessions() throws -> [TherapeuticSession] {
         let descriptor = FetchDescriptor<TherapeuticSession>(
             sortBy: [SortDescriptor(\.sessionDate, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return try self.modelContext.fetch(descriptor)
     }
-    
+
     /// Fetch sessions within a date range
     /// - Parameters:
     ///   - startDate: Start of date range
@@ -87,9 +86,9 @@ class SessionDataService {
             },
             sortBy: [SortDescriptor(\.sessionDate, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return try self.modelContext.fetch(descriptor)
     }
-    
+
     /// Fetch sessions by treatment type
     /// - Parameter treatmentType: The treatment type to filter by
     /// - Returns: Array of TherapeuticSession objects matching the treatment type
@@ -101,52 +100,53 @@ class SessionDataService {
             },
             sortBy: [SortDescriptor(\.sessionDate, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return try self.modelContext.fetch(descriptor)
     }
-    
+
     // MARK: - Auto-Save Implementation
-    
+
     /// Set up automatic saving to prevent data loss
     private func setupAutoSave() {
-        autoSaveTimer = Timer.scheduledTimer(withTimeInterval: autoSaveInterval, repeats: true) { [weak self] _ in
-            self?.performAutoSave()
-        }
+        self.autoSaveTimer = Timer
+            .scheduledTimer(withTimeInterval: self.autoSaveInterval, repeats: true) { [weak self] _ in
+                self?.performAutoSave()
+            }
     }
-    
+
     /// Perform auto-save if there are unsaved changes
     private func performAutoSave() {
-        guard hasUnsavedChanges else { return }
-        
+        guard self.hasUnsavedChanges else { return }
+
         do {
-            try saveContext()
-            hasUnsavedChanges = false
+            try self.saveContext()
+            self.hasUnsavedChanges = false
         } catch {
             // Log error but don't crash - auto-save should be resilient
             print("Auto-save failed: \(error.localizedDescription)")
         }
     }
-    
+
     /// Force save immediately (for manual save operations)
     func forceSave() throws {
-        try saveContext()
-        hasUnsavedChanges = false
+        try self.saveContext()
+        self.hasUnsavedChanges = false
     }
-    
+
     /// Mark that there are unsaved changes
     private func markUnsavedChanges() {
-        hasUnsavedChanges = true
+        self.hasUnsavedChanges = true
     }
-    
+
     /// Save the model context
     /// - Throws: SwiftData persistence errors
     private func saveContext() throws {
-        if modelContext.hasChanges {
-            try modelContext.save()
+        if self.modelContext.hasChanges {
+            try self.modelContext.save()
         }
     }
-    
+
     // MARK: - Draft Recovery
-    
+
     /// Save a draft session snapshot for crash recovery without inserting it into the store
     /// - Parameter session: The draft session state to persist temporarily
     func saveDraft(_ session: TherapeuticSession) {
@@ -159,64 +159,65 @@ class SessionDataService {
             print("Failed to encode draft: \(error.localizedDescription)")
         }
     }
-    
+
     /// Recover any existing draft session
     /// - Returns: Draft TherapeuticSession if one exists, nil otherwise
     func recoverDraft() -> TherapeuticSession? {
         guard let draftSaveTime = UserDefaults.standard.object(forKey: DraftKeys.timestamp) as? Date,
-              let draftData = UserDefaults.standard.data(forKey: DraftKeys.payload) else {
+              let draftData = UserDefaults.standard.data(forKey: DraftKeys.payload)
+        else {
             return nil
         }
-        
+
         // Only recover drafts that are less than 24 hours old
         let hoursSinceLastSave = Date().timeIntervalSince(draftSaveTime) / 3600
         guard hoursSinceLastSave < 24 else {
-            clearDraft()
+            self.clearDraft()
             return nil
         }
-        
+
         do {
             let draft = try JSONDecoder().decode(SessionDraft.self, from: draftData)
             return draft.makeSession()
         } catch {
             print("Failed to recover draft: \(error.localizedDescription)")
-            clearDraft()
+            self.clearDraft()
             return nil
         }
     }
-    
+
     /// Clear the current draft
     func clearDraft() {
         UserDefaults.standard.removeObject(forKey: DraftKeys.payload)
         UserDefaults.standard.removeObject(forKey: DraftKeys.timestamp)
     }
-    
+
     // MARK: - Validation
-    
+
     /// Validate a session before saving
     /// - Parameter session: The session to validate
     /// - Returns: Array of validation error messages (empty if valid)
     func validateSession(_ session: TherapeuticSession) -> [String] {
         var errors: [String] = []
-        
+
         // Treatment type validation is built into the enum, so we just need to validate other fields
         if session.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             errors.append("Intention is required")
         }
-        
+
         // Check for future date
         if session.sessionDate > Date() {
             errors.append("Session date cannot be in the future")
         }
-        
+
         if session.moodBefore < 1 || session.moodBefore > 10 {
             errors.append("Pre-mood scale must be between 1 and 10")
         }
-        
+
         if session.moodAfter < 1 || session.moodAfter > 10 {
             errors.append("Mood after must be between 1 and 10")
         }
-        
+
         return errors
     }
 }
@@ -242,7 +243,7 @@ private struct SessionDraft: Codable {
     let spotifyPlaylistURI: String?
     let spotifyPlaylistName: String?
     let spotifyPlaylistImageURL: String?
-    
+
     init(session: TherapeuticSession) {
         self.sessionDate = session.sessionDate
         self.treatmentType = session.treatmentTypeRawValue
@@ -258,7 +259,7 @@ private struct SessionDraft: Codable {
         self.spotifyPlaylistName = session.spotifyPlaylistName
         self.spotifyPlaylistImageURL = session.spotifyPlaylistImageURL
     }
-    
+
     func makeSession() -> TherapeuticSession {
         let session = TherapeuticSession(
             sessionDate: sessionDate,
@@ -272,9 +273,9 @@ private struct SessionDraft: Codable {
             moodAfter: moodAfter,
             reflections: reflections
         )
-        session.spotifyPlaylistURI = spotifyPlaylistURI
-        session.spotifyPlaylistName = spotifyPlaylistName
-        session.spotifyPlaylistImageURL = spotifyPlaylistImageURL
+        session.spotifyPlaylistURI = self.spotifyPlaylistURI
+        session.spotifyPlaylistName = self.spotifyPlaylistName
+        session.spotifyPlaylistImageURL = self.spotifyPlaylistImageURL
         return session
     }
 }
@@ -282,11 +283,10 @@ private struct SessionDraft: Codable {
 // MARK: - Background Task Support
 
 extension SessionDataService {
-    
     /// Save data when app enters background
     func saveOnBackground() {
         do {
-            try forceSave()
+            try self.forceSave()
         } catch {
             print("Failed to save on background: \(error.localizedDescription)")
         }

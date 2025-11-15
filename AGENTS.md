@@ -9,16 +9,19 @@ This guide captures the expectations for contributors extending Afterflow’s pr
 - Product requirements and UX notes live under `specs/00x-*`; update the matching spec before large feature work.
 
 ## Build, Test, and Development Commands
-- `open Afterflow.xcodeproj` — launch Xcode; select the `Afterflow` scheme and iOS 17.6+ simulator.
-- `xcodebuild build -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'` — CI-friendly build to ensure code-signing and warnings pass.
-- `xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPhone 16'` — full XCTest + SwiftUI previews smoke run (same as `Cmd+U`).
-- `xcodebuild test ... -only-testing:AfterflowTests/TherapeuticSessionTests` — example of targeting a focused suite during TDD loops.
+- `./Scripts/run-swiftformat.sh` — repository-wide SwiftFormat pass.
+- `./Scripts/run-swiftlint.sh` — SwiftLint using `.swiftlint.yml`.
+- `./Scripts/build-app.sh [--destination <value>]` — wraps `xcodebuild build`; omit `--destination` to let Xcode choose an available target or provide a simulator/device spec.
+- `./Scripts/run-app.sh --destination 'platform=iOS Simulator,name=iPhone 16'` — build, install, and launch Afterflow in a specific simulator (override `--bundle-id`, `--device`, etc., as needed).
+- `./Scripts/test-app.sh [--destination <value>]` — wraps `xcodebuild test`; provide `--destination 'id=<DEVICE-UDID>'` when running on hardware.
+- `open Afterflow.xcodeproj` — launch Xcode; select the `Afterflow` scheme when debugging interactively.
 
 ## Coding Style & Naming Conventions
 - Follow Swift API Design Guidelines: types `PascalCase`, properties/functions `camelCase`, constants prefixed with context (e.g., `sessionFetchRequest`).
 - Use 4-space indentation and keep files under 300 lines; extract SwiftUI subviews into `Views/Components` when bodies exceed ~80 lines.
 - Keep view models `Observable` structs/classes with clearly named `@Published` fields (`formState`, `validationErrors`); avoid single-letter abbreviations.
-- Run Xcode’s “Re-Indent” or `Editor > Structure > Reformat` before committing; lint scripts are not enforced yet, so manual consistency matters.
+- Run Xcode’s “Re-Indent” or `Editor > Structure > Reformat` before committing; SwiftFormat and SwiftLint enforce shared rules but manual cleanup keeps diffs readable.
+- Enforce SwiftFormat and SwiftLint with `./Scripts/run-swiftformat.sh` followed by `./Scripts/run-swiftlint.sh`; both must pass cleanly before opening a pull request.
 
 ## Testing Guidelines
 - XCTest is the single framework; add unit tests beside source counterparts (e.g., `Models/TherapeuticSession.swift` pairs with `ModelTests/TherapeuticSessionTests.swift`).
