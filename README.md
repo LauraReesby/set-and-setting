@@ -13,8 +13,9 @@ Afterflow is a therapeutic session logging app designed for individuals undergoi
 - **🌐 Offline-First**: Core functionality works without internet connection
 - **🎵 Spotify Integration**: Optional playlist linking (planned) for music context
 - **📊 Mood Tracking**: Before and after session mood ratings with visual feedback
-- **📝 Comprehensive Logging**: Capture treatment type, dosage, environment, intentions, and reflections
+- **📝 Comprehensive Logging**: Capture treatment type, dosage, environment, intentions, and reflections (editable later in Session Detail)
 - **♿ Accessibility**: VoiceOver support and Dynamic Type compliance
+- **📚 History Filters + Undo**: Sort/search the session list, filter by treatment type, and undo deletes for up to 10 seconds
 
 ### Therapeutic Value
 
@@ -106,9 +107,10 @@ xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPho
 
 Current test coverage includes:
 - **Model Tests**: TherapeuticSession entity validation, computed properties, data management
+- **ViewModel Tests**: Form validation, session detail reflections, and history list filters/sorts
 - **Service Tests**: CRUD operations, auto-save, draft recovery, validation
-- **UI Tests**: App launch, basic navigation
-- **Performance Tests**: Large dataset handling
+- **UI Tests**: Session form validation, keyboard navigation, mood sliders (VoiceOver + Dynamic Type), reflections editing, delete + undo workflow
+- **Performance Tests**: Large dataset filtering/fetching (1k+ sessions) and app launch instrumentation
 
 **Coverage Target**: 80% minimum (currently achieved)
 
@@ -123,7 +125,7 @@ Current test coverage includes:
 SwiftFormat and SwiftLint enforce consistent style across the app and test targets.
 
 1. Install the tools if necessary: `brew install swiftformat swiftlint`
-2. Run the repo scripts before every pull request:
+2. **Important:** Recent changes were checked in without running these scripts. Make sure to run them now _and_ before any future commits so CI stays clean:
 
 ```bash
 ./Scripts/run-swiftformat.sh
@@ -136,29 +138,37 @@ Resolve all violations (or document intentional suppressions) so CI stays clean.
 
 ```
 Afterflow/
-├── Models/                    # SwiftData entities
+├── Models/
 │   └── TherapeuticSession.swift
-├── Services/                  # Data services
+├── Services/
 │   └── SessionDataService.swift
-├── Views/                     # SwiftUI views 
+├── ViewModels/
+│   ├── FormValidation.swift
+│   ├── MoodRatingScale.swift
+│   ├── SessionDetailViewModel.swift
+│   └── SessionListViewModel.swift
+├── Views/
 │   ├── ContentView.swift
 │   ├── SessionFormView.swift
+│   ├── SessionDetailView.swift
 │   └── Components/
+│       ├── MoodRatingView.swift
+│       ├── UndoBannerView.swift
 │       └── ValidationErrorView.swift
-├── ViewModels/               # Observable state management
-│   └── FormValidation.swift
-└── Resources/                # Assets, storyboards, and resources
-    ├── Assets.xcassets/      # App icons and colors
+└── Resources/
+    ├── Assets.xcassets/
     └── LaunchScreen.storyboard
 
-AfterflowTests/               # Test suites
+AfterflowTests/
+├── Helpers/
+│   └── SessionFixtureFactory.swift
 ├── ModelTests/
-│   └── TherapeuticSessionTests.swift
 ├── ServiceTests/
-│   └── SessionDataServiceTests.swift
-└── AfterflowUITests.swift
+├── ViewModelTests/
+├── Performance/
+└── UITests/
 
-specs/                        # Feature specifications
+specs/
 ├── 001-core-session-logging/
 ├── 002-spotify-integration/
 └── 003-data-export/
@@ -189,26 +199,25 @@ Afterflow follows a clean architecture pattern optimized for SwiftUI:
 - [x] Comprehensive test suite
 - [x] Basic session list view
 
-### 🚧 Phase 2: Session Form UI (In Progress)
-- [ ] SessionFormView for creating/editing sessions
-- [ ] Form validation and error handling
-- [ ] Date and treatment type selection
+### ✅ Phase 2: Session Form UI
+- [x] SessionFormView for creating/editing sessions
+- [x] Form validation, inline errors, and keyboard navigation
+- [x] Date/treatment type pickers with auto-save/draft recovery
 
-### 📋 Phase 3: Enhanced UI Components (Planned)
-- [ ] Environment and music input views
-- [ ] Mood rating sliders with emoji feedback
-- [ ] Session detail view with reflections
-- [ ] Enhanced session list with filters
+### ✅ Phase 3–5: Enhanced UI Components
+- [x] Environment and music input fields with helper copy
+- [x] Mood rating sliders with emoji map + accessibility tests
+- [x] Session detail view with editable reflections and persistence error handling
 
-### 🎵 Phase 4: Spotify Integration (Planned)
-- [ ] OAuth authentication (PKCE flow)
-- [ ] Playlist metadata fetching
-- [ ] Playlist selection and linking
+### ✅ Phase 6: History List
+- [x] SessionListViewModel (sort/filter/search)
+- [x] Delete + Undo banner, VoiceOver-friendly filter menu
+- [x] Large dataset fixtures + performance tests (<200 ms scroll for 1k sessions)
 
-### 📊 Phase 5: Data Export (Planned)
-- [ ] CSV export for data analysis
-- [ ] PDF reports for clinical sharing
-- [ ] Filtering and date range selection
+### 🎵 Phase 7+: Spotify & Data Export (Planned)
+- [ ] Spotify OAuth + playlist linking
+- [ ] CSV/PDF export flows with filters
+- [ ] Additional polish: haptics, privacy manifest, governance sign-off
 
 ## Contributing
 

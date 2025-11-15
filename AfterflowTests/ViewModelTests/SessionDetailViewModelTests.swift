@@ -4,8 +4,7 @@ import Testing
 
 @MainActor
 final class SessionDetailViewModelTests {
-    @Test("Saving reflection updates session and clears error")
-    func saveReflectionSuccess() async throws {
+    @Test("Saving reflection updates session and clears error") func saveReflectionSuccess() async throws {
         let session = TherapeuticSession(reflections: "Old")
         let persistence = MockPersistence()
         let viewModel = SessionDetailViewModel(session: session, persistence: persistence)
@@ -21,8 +20,7 @@ final class SessionDetailViewModelTests {
         #expect(viewModel.errorMessage == nil)
     }
 
-    @Test("Saving reflection surfaces persistence errors")
-    func saveReflectionFailure() async throws {
+    @Test("Saving reflection surfaces persistence errors") func saveReflectionFailure() async throws {
         let session = TherapeuticSession(reflections: "")
         let persistence = MockPersistence(shouldThrow: true)
         let viewModel = SessionDetailViewModel(session: session, persistence: persistence)
@@ -43,8 +41,12 @@ private final class MockPersistence: SessionReflectionPersisting {
     }
 
     func updateSession(_ session: TherapeuticSession) throws {
-        if shouldThrow {
-            throw NSError(domain: "SessionDetailViewModelTests", code: 1, userInfo: [NSLocalizedDescriptionKey: "Simulated failure"])
+        if self.shouldThrow {
+            throw NSError(
+                domain: "SessionDetailViewModelTests",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Simulated failure"]
+            )
         }
     }
 }

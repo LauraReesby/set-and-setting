@@ -4,7 +4,7 @@ import Foundation
 
 /// Provides descriptive context and emoji mappings for mood ratings.
 /// Keeps slider labels calm and reflective while remaining testable.
-struct MoodRatingScale {
+enum MoodRatingScale {
     /// Clamp incoming slider values to the 1...10 range expected by the UX.
     private static func clamped(_ value: Int) -> Int {
         max(1, min(value, 10))
@@ -14,15 +14,15 @@ struct MoodRatingScale {
     static func descriptor(for value: Int) -> String {
         switch self.clamped(value) {
         case 1 ... 2:
-            return "Tender"
+            "Tender"
         case 3 ... 4:
-            return "Reflective"
+            "Reflective"
         case 5 ... 6:
-            return "Centered"
+            "Centered"
         case 7 ... 8:
-            return "Uplifted"
+            "Uplifted"
         default:
-            return "Radiant"
+            "Radiant"
         }
     }
 
@@ -30,15 +30,15 @@ struct MoodRatingScale {
     static func emoji(for value: Int) -> String {
         switch self.clamped(value) {
         case 1 ... 2:
-            return "☁️"
+            "☁️"
         case 3 ... 4:
-            return "🌦️"
+            "🌦️"
         case 5 ... 6:
-            return "🌤️"
+            "🌤️"
         case 7 ... 8:
-            return "☀️"
+            "☀️"
         default:
-            return "✨"
+            "✨"
         }
     }
 }

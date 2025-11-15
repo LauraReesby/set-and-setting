@@ -48,8 +48,7 @@ final class SessionMoodRatingUITests: XCTestCase {
 
     // MARK: - Helpers
 
-    @discardableResult
-    private func presentSessionForm(_ app: XCUIApplication) -> XCUIElement {
+    @discardableResult private func presentSessionForm(_ app: XCUIApplication) -> XCUIElement {
         app.launch()
 
         let addSessionButton = app.buttons["addSessionButton"]
@@ -65,7 +64,8 @@ final class SessionMoodRatingUITests: XCTestCase {
     }
 
     private func revealMoodSection(in app: XCUIApplication) {
-        let scrollable = app.collectionViews.firstMatch.exists ? app.collectionViews.firstMatch : app.scrollViews.firstMatch
+        let scrollable = app.collectionViews.firstMatch.exists ? app.collectionViews.firstMatch : app.scrollViews
+            .firstMatch
         for _ in 0 ..< 12 where !(app.sliders["moodBeforeSlider"].exists && app.sliders["moodAfterSlider"].exists) {
             scrollable.swipeUp()
             RunLoop.current.run(until: Date().addingTimeInterval(0.05))

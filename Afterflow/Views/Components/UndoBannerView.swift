@@ -7,7 +7,7 @@ struct UndoBannerView: View {
 
     var body: some View {
         HStack {
-            Text(message)
+            Text(self.message)
                 .font(.subheadline)
                 .foregroundStyle(.primary)
                 .lineLimit(2)
@@ -15,7 +15,7 @@ struct UndoBannerView: View {
 
             Spacer()
 
-            Button(actionTitle) {
+            Button(self.actionTitle) {
                 self.action()
             }
             .font(.subheadline.bold())
@@ -31,7 +31,7 @@ struct UndoBannerView: View {
                 .shadow(radius: 8)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(message). \(actionTitle)")
+        .accessibilityLabel("\(self.message). \(self.actionTitle)")
     }
 }
 

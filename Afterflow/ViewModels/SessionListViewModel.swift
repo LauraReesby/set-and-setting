@@ -13,11 +13,11 @@ struct SessionListViewModel {
         var label: String {
             switch self {
             case .newestFirst:
-                return "Newest First"
+                "Newest First"
             case .oldestFirst:
-                return "Oldest First"
+                "Oldest First"
             case .moodChange:
-                return "Biggest Mood Lift"
+                "Biggest Mood Lift"
             }
         }
     }
