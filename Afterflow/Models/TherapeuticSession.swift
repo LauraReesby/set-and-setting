@@ -107,6 +107,16 @@ final class TherapeuticSession {
     /// Post-session reflections and insights
     var reflections: String
 
+    /// Reminder date for revisiting reflections
+    var reminderDate: Date?
+
+    /// Lifecycle state for this session
+    var statusRawValue: String
+
+    var status: SessionLifecycleStatus {
+        get { SessionLifecycleStatus(rawValue: statusRawValue) ?? .draft }
+        set { statusRawValue = newValue.rawValue }
+    }
     // MARK: - Spotify Integration (Optional)
 
     /// Spotify playlist URI (optional, from Feature 002)
@@ -130,7 +140,9 @@ final class TherapeuticSession {
         musicNotes: String = "",
         moodBefore: Int = 5,
         moodAfter: Int = 5,
-        reflections: String = ""
+        reflections: String = "",
+        status: SessionLifecycleStatus = .draft,
+        reminderDate: Date? = nil
     ) {
         self.id = UUID()
         self.sessionDate = sessionDate
@@ -143,6 +155,8 @@ final class TherapeuticSession {
         self.moodBefore = moodBefore
         self.moodAfter = moodAfter
         self.reflections = reflections
+        self.reminderDate = reminderDate
+        self.statusRawValue = status.rawValue
         self.createdAt = Date()
         self.updatedAt = Date()
 
@@ -193,5 +207,18 @@ extension TherapeuticSession {
         self.spotifyPlaylistName = nil
         self.spotifyPlaylistImageURL = nil
         self.markAsUpdated()
+    }
+}
+enum SessionLifecycleStatus: String, Codable, CaseIterable {
+    case draft
+    case needsReflection
+    case complete
+
+    var displayName: String {
+        switch self {
+        case .draft: return "Draft"
+        case .needsReflection: return "Needs Reflection"
+        case .complete: return "Complete"
+        }
     }
 }

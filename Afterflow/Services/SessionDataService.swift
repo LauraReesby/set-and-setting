@@ -243,6 +243,8 @@ private struct SessionDraft: Codable {
     let spotifyPlaylistURI: String?
     let spotifyPlaylistName: String?
     let spotifyPlaylistImageURL: String?
+    let reminderDate: Date?
+    let status: SessionLifecycleStatus
 
     init(session: TherapeuticSession) {
         self.sessionDate = session.sessionDate
@@ -258,6 +260,8 @@ private struct SessionDraft: Codable {
         self.spotifyPlaylistURI = session.spotifyPlaylistURI
         self.spotifyPlaylistName = session.spotifyPlaylistName
         self.spotifyPlaylistImageURL = session.spotifyPlaylistImageURL
+        self.reminderDate = session.reminderDate
+        self.status = session.status
     }
 
     func makeSession() -> TherapeuticSession {
@@ -276,6 +280,8 @@ private struct SessionDraft: Codable {
         session.spotifyPlaylistURI = self.spotifyPlaylistURI
         session.spotifyPlaylistName = self.spotifyPlaylistName
         session.spotifyPlaylistImageURL = self.spotifyPlaylistImageURL
+        session.reminderDate = self.reminderDate
+        session.status = self.status
         return session
     }
 }

@@ -2,6 +2,7 @@
 import Foundation
 import Testing
 
+@MainActor
 struct TherapeuticSessionTests {
     // MARK: - Initialization Tests
 
@@ -19,6 +20,8 @@ struct TherapeuticSessionTests {
         #expect(session.moodBefore == 5)
         #expect(session.moodAfter == 5)
         #expect(session.reflections == "")
+        #expect(session.status == .draft)
+        #expect(session.reminderDate == nil)
         #expect(session.spotifyPlaylistURI == nil)
         #expect(session.spotifyPlaylistName == nil)
         #expect(session.spotifyPlaylistImageURL == nil)
@@ -33,6 +36,7 @@ struct TherapeuticSessionTests {
     @Test("TherapeuticSession initialization with custom values")
     func therapeuticSessionCustomInitialization() async throws {
         let customDate = Date(timeIntervalSinceNow: -3600) // 1 hour ago
+        let reminderDate = Date().addingTimeInterval(3600)
         let session = TherapeuticSession(
             sessionDate: customDate,
             treatmentType: .psilocybin,
@@ -43,7 +47,9 @@ struct TherapeuticSessionTests {
             musicNotes: "Nature sounds",
             moodBefore: 3,
             moodAfter: 8,
-            reflections: "Profound insights"
+            reflections: "Profound insights",
+            status: .needsReflection,
+            reminderDate: reminderDate
         )
 
         #expect(session.sessionDate == customDate)
@@ -56,6 +62,8 @@ struct TherapeuticSessionTests {
         #expect(session.moodBefore == 3)
         #expect(session.moodAfter == 8)
         #expect(session.reflections == "Profound insights")
+        #expect(session.status == .needsReflection)
+        #expect(session.reminderDate == reminderDate)
     }
 
     // MARK: - Computed Properties Tests

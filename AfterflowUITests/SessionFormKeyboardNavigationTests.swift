@@ -2,6 +2,7 @@
 
 import XCTest
 
+@MainActor
 final class SessionFormKeyboardNavigationTests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false

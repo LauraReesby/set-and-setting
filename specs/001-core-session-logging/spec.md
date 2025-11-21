@@ -18,17 +18,29 @@ Existing solutions require network access or expose data.
 - All fields editable and persisted locally.  
 - UI tone: reflective / neutral / non-clinical.  
 - QA compliance met per Constitution § Quality Gates.  
+- Session status clearly reflects progress (Draft ➜ Needs Reflection ➜ Complete) with reminder support.
 
 ---
 
+## Session Status States
+- **🟦 Draft:** The user is filling out the core form. Drafts are held in-memory only (auto-save/draft-recovery) and not written to SwiftData. A session becomes a “draft” when:
+  - `sessionDate` (defaults to now) is set  
+  - `treatmentType` (defaults to psilocybin) is chosen  
+  - `moodBefore` slider has a value  
+  - `intention` is non-empty  
+- **🟧 Needs Reflection:** Once the user saves the draft (above fields complete), the session is persisted. The app prompts: “Would you like a reminder to add reflections later?” with options **In 1 hour / Later today / Tomorrow morning / No thanks**. Selecting a reminder schedules a local notification. Sessions in this state are highlighted in the list until reflections are added.  
+- **🟩 Complete:** Reflections (and any remaining optional fields) have been captured; the reminder (if any) is cleared.
+
 ## User Stories
 ### US1 – Create New Session
-**As a user** I want to open the app and quickly log a new session with date/time, treatment type, and intentions.  
+**As a user** I want to open the app and quickly log a new session with date/time, treatment type, moods, and intentions.  
 **Acceptance:**
 1. Default date/time pre-filled.  
 2. Required-field validation and inline guidance.  
 3. Keyboard dismisses gracefully on swipe or tap.  
-4. Draft auto-save & recovery on relaunch.
+4. Draft auto-save & recovery on relaunch.  
+5. Draft is only persisted once the “Needs Reflection” state begins (after mood + intention complete).  
+6. After saving the draft, prompt for reminder: “Would you like a reminder to add reflections later?” with the four options above.
 
 ### US2 – Add Environment & Music
 **As a user** I want to capture my environment and music notes to recall the setting.  
@@ -36,6 +48,7 @@ Existing solutions require network access or expose data.
 1. Free-text environment + music notes (Spotify URI later).  
 2. Tone-checked helper copy → reflective guidance.  
 3. Long inputs remain responsive.  
+4. Fields visually grouped as “Later” so users understand they unlock after the draft phase.  
 
 ### US3 – Rate Session Mood
 **As a user** I want to rate mood before / after the session.  
@@ -43,20 +56,31 @@ Existing solutions require network access or expose data.
 1. Intuitive slider 1–10 with emoji feedback.  
 2. VoiceOver announces slider labels + values.  
 3. Dynamic Type XL+ layout passes A11y snapshot tests.  
+4. Before-mood completion is required to transition from Draft to Needs Reflection.  
 
 ### US4 – Post-Session Reflections
 **As a user** I want to add reflections and integration notes later.  
 **Acceptance:**
 1. Empty-state helper copy encourages reflective writing.  
-2. Auto-save on pause; persistence error shows non-blocking banner + retry.  
+2. Once a session is in “Needs Reflection,” any changes (reflections, environment, music, moodAfter) auto-save to SwiftData; persistence errors surface non-blocking banner + retry.  
+3. Reminder selections fire local notifications until dismissed by saving reflections.  
+4. Sessions in “Needs Reflection” state display a banner in lists/detail and can be tapped to resume; once reflections saved, reminder clears and status flips to Complete.
 
 ### US5 – View & Manage History
 **As a user** I want to browse all sessions chronologically and manage them.  
 **Acceptance:**
-1. List displays date, mood indicator, treatment type.  
+1. List displays date, mood indicator, treatment type, **and status badge (Needs Reflection)**.  
 2. Tap → detail view.  
 3. Delete → confirmation + 10 s Undo snackbar.  
 4. 1 000-session dataset loads fast; scroll < 200 ms first paint.  
+5. Needs Reflection rows visually distinct (icon/badge) until reflections entered.
+
+---
+
+### Session Status Lifecycle
+- **🟦 Draft** (not persisted): sessionDate + treatmentType defaulted, user supplies intention + before mood while everything lives in view-model memory.  
+- **🟧 Needs Reflection**: once intention + before mood saved, persist session, prompt for reflection reminder schedule, unlock after-mood + reflection inputs.  
+- **🟩 Complete**: reflections saved (or dismissed) and reminder cleared. List/detail badges show latest state, and reminders can be canceled anytime in Needs Reflection.
 
 ---
 
@@ -66,13 +90,16 @@ Existing solutions require network access or expose data.
 | FR-001 | Create / read / update / delete TherapeuticSession entities offline. |
 | FR-002 | Validate required fields with inline guidance. |
 | FR-003 | Auto-save drafts + recover after crash/close. |
+| FR-003a | Drafts remain in volatile storage until the “Needs Reflection” threshold is passed; persisted sessions track status. |
 | FR-004 | Support environment + music notes text fields. |
 | FR-005 | Mood rating sliders (before/after). |
-| FR-006 | Reflection text area + auto-save. |
-| FR-007 | Chronological session list + detail view. |
-| FR-008 | Delete + Undo flow. |
+| FR-006 | Reflection text area + auto-save (live once “Needs Reflection”), with reminder scheduling. |
+| FR-007 | Chronological session list + detail view (status-aware). |
+| FR-008 | Delete + Undo flow + reminder cancellation when undoing. |
 | FR-009 | Accessibility (VoiceOver, Dynamic Type). |
 | FR-010 | Local encryption per iOS security layer. |
+| FR-011 | Prompt for reminder options (“In 1 hour”, “Later today”, “Tomorrow morning”, “No thanks”), schedule/cancel per selection, and surface status in list/detail. |
+| FR-012 | Visually separate “Complete the draft” fields from “Reflections later” fields in the SessionFormView. |
 
 ---
 
@@ -85,6 +112,8 @@ Existing solutions require network access or expose data.
 | TR-004 | SwiftData queries in ViewModels only for derived state. |
 | TR-005 | Biometric unlock (optional). |
 | TR-006 | Performance → launch < 2 s; I/O < 16 ms main thread (constitutional requirements). |
+| TR-007 | Session state machine owned by ViewModel; SwiftData stores `status` enum once persisted plus reminder metadata. |
+| TR-008 | Reminder scheduling implemented via `UNUserNotificationCenter` with notification categories allowing quick mark-as-complete. |
 
 ---
 
@@ -98,6 +127,7 @@ Existing solutions require network access or expose data.
 - **Privacy**: Local data encryption verification, no external data leakage testing.
 - **UX Standards**: Calming, non-judgmental interface; reflective and neutral communication tone.
 - **Test Types**: Unit tests (models, ViewModels, services), UI tests (user workflows), Integration tests (data persistence).  
+- **Reminder Accuracy**: Automated tests verifying reminders fire/cancel based on status transitions.
 
 ---
 
@@ -112,6 +142,7 @@ None (except system frameworks).
 | Data loss on app close | Auto-save drafts + restore tests. |
 | Accessibility failures | Snapshot + VoiceOver automation tests. |
 | User overwhelm | Limit fields; calming UI review per release. |
+| Reminder fatigue | Provide “No thanks” default + cancel controls from detail view and notifications. |
 
 ---
 

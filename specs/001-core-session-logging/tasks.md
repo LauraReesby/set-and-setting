@@ -13,13 +13,15 @@
 - [x] T008 [US1] Date validation and normalization.  
 - [x] T009 [US1] UI tests for form validation and keyboard flow.  
 - [x] T010 [US1] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
+- [x] T010a [US1] Implement Draft vs. Needs Reflection field grouping + inline status indicator.  
+- [x] T010b [US1] ViewModel-only draft persistence + unit tests ensuring SwiftData writes occur after before-mood/intention complete.  
 
 ## Phase 3 – Environment & Music
 - [x] T011 [US2] Add environment + music fields to model.  
-- [ ] T012 [US2] EnvironmentInputView + Music Input subviews.  
-- [ ] T013 [US2] Tone-checked helper copy.  
-- [ ] T014 [US2] Persistence tests + UI tests (long text handling).  
-- [ ] T015 [US2] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
+- [x] T012 [US2] EnvironmentInputView + Music Input subviews.  
+- [x] T013 [US2] Tone-checked helper copy.  
+- [x] T014 [US2] Persistence tests + UI tests (long text handling).  
+- [x] T015 [US2] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
 
 ## Phase 4 – Mood Ratings
 - [x] T016 [US3] Add before/after mood fields.  
@@ -34,6 +36,8 @@
 - [x] T023 [US4] Empty-state helper copy.  
 - [x] T024 [US4] Persistence error handling.  
 - [x] T025 [US4] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
+- [ ] T025a [US4] Implement session status pipeline (Draft ➜ Needs Reflection ➜ Complete) with reminder scheduling.  
+- [ ] T025b [US4] Local notification handling + auto-save once Needs Reflection is active.  
 
 ## Phase 6 – History List
 - [x] T026 [US5] SessionListView with SwiftData query.  
@@ -41,6 +45,7 @@
 - [x] T028 [US5] Delete + Undo flow.  
 - [x] T029 [US5] Large dataset fixture + perf tests.  
 - [x] T030 [US5] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
+- [ ] T030a [US5] Surface Needs Reflection badge + reminder metadata in list/detail + UI tests.  
 
 ## Phase 7 – Polish & Cross-Cutting
 - [ ] T031 [Polish] Add accessibility labels + VoiceOver tests.  
@@ -49,3 +54,4 @@
 - [ ] T034 [Polish] Migration Notes documentation.  
 - [ ] T035 [Polish] App Privacy manifest = Data Not Collected.  
 - [ ] T036 [Polish] Final QA review + governance sign-off.  
+- [ ] T037 [Polish] Reminder lifecycle QA (unit + UI tests) covering scheduling, cancelation, completion flows.  

@@ -60,9 +60,19 @@ struct SessionFormView: View {
         return formValidation.isValid
     }
 
+    private var sessionPhase: SessionLifecycleStatus {
+        let intentionComplete = !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return intentionComplete ? .needsReflection : .draft
+    }
+
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    SessionStatusIndicatorView(status: self.sessionPhase)
+                        .listRowBackground(Color.clear)
+                }
+
                 Section {
                     DatePicker(
                         "Session Date",
@@ -97,7 +107,7 @@ struct SessionFormView: View {
                         .animation(.easeInOut(duration: 0.2), value: self.showDateNormalizationHint)
                     }
                 } header: {
-                    Text("When")
+                    Text("1 · When is this session?")
                         .font(.headline)
                         .foregroundColor(.primary)
                 }
@@ -140,7 +150,7 @@ struct SessionFormView: View {
                         self.scheduleDraftSave()
                     }
                 } header: {
-                    Text("Treatment")
+                    Text("2 · Treatment details")
                         .font(.headline)
                         .foregroundColor(.primary)
                 }
@@ -169,7 +179,7 @@ struct SessionFormView: View {
                     .accessibilityLabel("Intention")
                     .accessibilityHint("Describe what you hope to explore or heal during this session")
                 } header: {
-                    Text("Intention")
+                    Text("3 · Set your intention")
                         .font(.headline)
                         .foregroundColor(.primary)
                 } footer: {
@@ -197,13 +207,28 @@ struct SessionFormView: View {
                         self.scheduleDraftSave()
                     }
                 } header: {
-                    Text("Mood")
+                    Text("4 · Track your mood")
                         .font(.headline)
                         .foregroundColor(.primary)
                 } footer: {
                     Text("Notice how your mood shifts before and after.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Plan for reflections later")
+                            .font(.headline)
+                        Text("Once you save this draft we’ll highlight it as “Needs Reflection” and you can capture environment notes, reflections, and reminders.")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 4)
+                } header: {
+                    Text("Later · Needs Reflection")
+                        .font(.headline)
+                        .foregroundColor(.primary)
                 }
             }
             .navigationTitle("New Session")
@@ -353,6 +378,11 @@ struct SessionFormView: View {
             return
         }
 
+        guard self.sessionPhase == .needsReflection else {
+            self.showError(message: "Finish the intention and mood before saving.")
+            return
+        }
+
         self.isLoading = true
         defer { isLoading = false }
 
@@ -363,7 +393,8 @@ struct SessionFormView: View {
             administration: self.selectedAdministration,
             intention: self.intention.trimmingCharacters(in: .whitespacesAndNewlines),
             moodBefore: self.moodBefore,
-            moodAfter: self.moodAfter
+            moodAfter: self.moodAfter,
+            status: .needsReflection
         )
 
         do {
@@ -422,7 +453,9 @@ struct SessionFormView: View {
             administration: self.selectedAdministration,
             intention: self.intention,
             moodBefore: self.moodBefore,
-            moodAfter: self.moodAfter
+            moodAfter: self.moodAfter,
+            status: self.sessionPhase,
+            reminderDate: nil
         )
     }
 }

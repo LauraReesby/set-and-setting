@@ -34,6 +34,9 @@ _Covers tasks T010, T020, T025, and T030 for Feature 001 – Core Session Loggin
 - **Performance / error handling**  
   - Editing reflections adds no measurable layout cost (<4 ms frame time).  
   - Simulated persistence failures via the mock view model; non-blocking error banner appears and allows an immediate retry without leaving the screen.
+- **Status / reminders**  
+  - `SessionFormView` confirmation dialog (“In 1 hour / Later today / Tomorrow morning / No thanks”) tested manually + via UI helpers; “No thanks” path covered in UI tests.  
+  - Sessions flip to **Needs Reflection** once saved; reflections auto-save while in that state and completing reflections clears reminders + marks sessions **Complete**.
 
 ## Phase 6 – History List QA
 - **Automated coverage**  

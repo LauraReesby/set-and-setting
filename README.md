@@ -16,6 +16,7 @@ Afterflow is a therapeutic session logging app designed for individuals undergoi
 - **📝 Comprehensive Logging**: Capture treatment type, dosage, environment, intentions, and reflections (editable later in Session Detail)
 - **♿ Accessibility**: VoiceOver support and Dynamic Type compliance
 - **📚 History Filters + Undo**: Sort/search the session list, filter by treatment type, and undo deletes for up to 10 seconds
+- **⏰ Reflection Reminders**: Optional reminders to add post session mood and reflections
 
 ### Therapeutic Value
 

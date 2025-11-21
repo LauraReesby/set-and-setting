@@ -3,6 +3,7 @@ import Foundation
 import SwiftData
 import Testing
 
+@MainActor
 struct SessionDataServiceTests {
     // MARK: - CRUD Tests
 
@@ -161,6 +162,7 @@ struct SessionDataServiceTests {
         let recoveredDraft = service.recoverDraft()
         #expect(recoveredDraft != nil)
         #expect(recoveredDraft?.treatmentType == .psilocybin)
+        #expect(recoveredDraft?.status == .draft)
 
         let storedSessions = try service.fetchAllSessions()
         #expect(storedSessions.isEmpty)
@@ -208,6 +210,7 @@ struct SessionDataServiceTests {
         #expect(recoveredDraft?.dosage == "2 cups")
         #expect(recoveredDraft?.intention == "Persist across instances")
         #expect(recoveredDraft?.sessionDate == sessionDate)
+        #expect(recoveredDraft?.status == .draft)
     }
 
     // MARK: - Validation Tests
