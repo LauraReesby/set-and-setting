@@ -15,16 +15,10 @@ final class SessionMoodRatingUITests: XCTestCase {
         XCTAssertTrue(beforeSlider.waitForExistence(timeout: 3), "Before mood slider should exist")
         XCTAssertEqual(beforeSlider.label, "Before Session mood rating")
 
-        let afterSlider = self.sliderElement("moodAfterSlider", in: app)
-        XCTAssertTrue(afterSlider.waitForExistence(timeout: 3), "After mood slider should exist")
-        XCTAssertEqual(afterSlider.label, "After Session mood rating")
+        XCTAssertFalse(app.sliders["moodAfterSlider"].exists, "After mood slider should be absent at creation")
 
         if beforeSlider.exists {
             beforeSlider.adjust(toNormalizedSliderPosition: 0.8)
-        }
-
-        if afterSlider.exists {
-            afterSlider.adjust(toNormalizedSliderPosition: 0.2)
         }
     }
 
@@ -37,8 +31,7 @@ final class SessionMoodRatingUITests: XCTestCase {
         let beforeSlider = self.sliderElement("moodBeforeSlider", in: app)
         XCTAssertTrue(beforeSlider.waitForExistence(timeout: 3), "Before mood slider should remain visible")
 
-        let afterSlider = self.sliderElement("moodAfterSlider", in: app)
-        XCTAssertTrue(afterSlider.waitForExistence(timeout: 3), "After mood slider should remain visible")
+        XCTAssertFalse(app.sliders["moodAfterSlider"].exists, "After mood slider should not appear in creation form")
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "MoodSection-XXXL"
@@ -73,9 +66,9 @@ final class SessionMoodRatingUITests: XCTestCase {
         }
 
         var attempts = 0
-        while !(app.sliders["moodBeforeSlider"].exists && app.sliders["moodAfterSlider"].exists), attempts < 30 {
+        while !(app.sliders["moodBeforeSlider"].exists && app.sliders["moodAfterSlider"].exists), attempts < 40 {
             container.swipeUp()
-            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            RunLoop.current.run(until: Date().addingTimeInterval(0.15))
             attempts += 1
         }
     }

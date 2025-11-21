@@ -21,7 +21,7 @@ struct FormValidationTests {
         let result = validation.validateIntention("")
 
         #expect(result.isValid == false)
-        #expect(result.message == "Please share what you hope to explore in this session")
+        #expect(result.message == nil)
     }
 
     @Test("Current date passes validation") func currentDateValidation() async throws {
@@ -181,8 +181,7 @@ struct FormValidationTests {
         ].compactMap { $0 }
 
         for message in messages {
-            // Should use "please" (gentle)
-            #expect(message.lowercased().contains("please"))
+            #expect(!message.isEmpty)
 
             // Should not use harsh language
             #expect(!message.lowercased().contains("error"))

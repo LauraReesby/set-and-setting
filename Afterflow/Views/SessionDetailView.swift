@@ -5,6 +5,7 @@ import SwiftUI
 
 struct SessionDetailView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     let session: TherapeuticSession
 
@@ -20,6 +21,7 @@ struct SessionDetailView: View {
         Form {
             self.overviewSection
 
+            self.editableDetailsSection
             self.reflectionSection
         }
         .navigationTitle("Session Details")
@@ -28,6 +30,7 @@ struct SessionDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") {
                     self.saveReflection()
+                    self.dismiss()
                 }
                 .disabled(!(self.viewModel?.hasChanges ?? false) || (self.viewModel?.isSaving ?? true))
             }
@@ -68,6 +71,48 @@ struct SessionDetailView: View {
         }
     }
 
+    private var editableDetailsSection: some View {
+        Section("Details") {
+            TextField("Dosage", text: Binding(
+                get: { self.viewModel?.dosage ?? "" },
+                set: { self.viewModel?.dosage = $0 }
+            ))
+            .textContentType(.none)
+            .autocorrectionDisabled()
+
+            Picker("Administration", selection: Binding(
+                get: { self.viewModel?.administration ?? .oral },
+                set: { self.viewModel?.administration = $0 }
+            )) {
+                ForEach(AdministrationMethod.allCases, id: \.self) { method in
+                    Text(method.displayName).tag(method)
+                }
+            }
+
+            TextField("Environment notes", text: Binding(
+                get: { self.viewModel?.environmentNotes ?? "" },
+                set: { self.viewModel?.environmentNotes = $0 }
+            ), axis: .vertical)
+                .lineLimit(1 ... 3)
+
+            TextField("Music notes", text: Binding(
+                get: { self.viewModel?.musicNotes ?? "" },
+                set: { self.viewModel?.musicNotes = $0 }
+            ), axis: .vertical)
+                .lineLimit(1 ... 3)
+
+            MoodRatingView(value: Binding(
+                get: { self.viewModel?.moodBefore ?? 5 },
+                set: { self.viewModel?.moodBefore = $0 }
+            ), title: "Before Session", accessibilityIdentifier: "detailMoodBefore")
+
+            MoodRatingView(value: Binding(
+                get: { self.viewModel?.moodAfter ?? 5 },
+                set: { self.viewModel?.moodAfter = $0 }
+            ), title: "After Session", accessibilityIdentifier: "detailMoodAfter")
+        }
+    }
+
     private var reflectionSection: some View {
         Section("Reflections") {
             ZStack(alignment: .topLeading) {
@@ -90,12 +135,6 @@ struct SessionDetailView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(Color.secondary.opacity(0.1))
             )
-
-            if let helperCopy = self.viewModel?.helperCopy {
-                Text(helperCopy)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
 
             if let errorMessage = self.viewModel?.errorMessage {
                 ValidationErrorView(message: errorMessage)

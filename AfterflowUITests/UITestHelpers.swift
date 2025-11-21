@@ -36,9 +36,17 @@ extension XCUIElement {
     func forceTap() {
         if self.isHittable {
             self.tap()
-        } else {
-            let coordinate = self.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-            coordinate.tap()
+            return
+        }
+        if self.exists {
+            let center = self.frame.integral.center
+            let coord = XCUIApplication().coordinate(withNormalizedOffset: .zero)
+                .withOffset(CGVector(dx: center.x, dy: center.y))
+            coord.tap()
         }
     }
+}
+
+private extension CGRect {
+    var center: CGPoint { CGPoint(x: midX, y: midY) }
 }

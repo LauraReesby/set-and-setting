@@ -185,10 +185,6 @@ struct SessionFormView: View {
                     Text("3 · Set your intention")
                         .font(.headline)
                         .foregroundColor(.primary)
-                } footer: {
-                    Text("Take a moment to reflect on your hopes for this session")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
 
                 Section {
@@ -200,23 +196,10 @@ struct SessionFormView: View {
                     .onChange(of: self.moodBefore) { _, _ in
                         self.scheduleDraftSave()
                     }
-
-                    MoodRatingView(
-                        value: self.$moodAfter,
-                        title: "After Session",
-                        accessibilityIdentifier: "moodAfterSlider"
-                    )
-                    .onChange(of: self.moodAfter) { _, _ in
-                        self.scheduleDraftSave()
-                    }
                 } header: {
                     Text("4 · Track your mood")
                         .font(.headline)
                         .foregroundColor(.primary)
-                } footer: {
-                    Text("Notice how your mood shifts before and after.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
 
                 Section {
@@ -252,15 +235,6 @@ struct SessionFormView: View {
                     }
                     .disabled(self.isLoading || !self.isFormValid)
                 }
-
-                // Keyboard toolbar for better UX
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-
-                    Button("Done") {
-                        self.dismissKeyboard()
-                    }
-                }
             }
             .disabled(self.isLoading)
             .contentShape(Rectangle())
@@ -278,9 +252,8 @@ struct SessionFormView: View {
             isPresented: self.$showReminderPrompt,
             titleVisibility: .visible
         ) {
-            Button("In 1 hour") { self.handleReminderSelection(.oneHour) }
-            Button("Later today") { self.handleReminderSelection(.laterToday) }
-            Button("Tomorrow morning") { self.handleReminderSelection(.tomorrowMorning) }
+            Button("In 3 hours") { self.handleReminderSelection(.threeHours) }
+            Button("Tomorrow") { self.handleReminderSelection(.tomorrow) }
             Button("No thanks", role: .cancel) { self.handleReminderSelection(.none) }
         }
         .onAppear {

@@ -20,7 +20,12 @@ final class SessionDetailViewUITests: XCTestCase {
         sessionCell.waitForHittable()
         sessionCell.forceTap()
 
+        XCTAssertTrue(app.navigationBars["Session Details"].waitForExistence(timeout: 2), "Detail view should appear")
+
         let reflectionEditor = app.textViews["reflectionEditor"]
+        if !reflectionEditor.waitForExistence(timeout: 3) {
+            list.scrollTo(element: reflectionEditor)
+        }
         XCTAssertTrue(reflectionEditor.waitForExistence(timeout: 3), "Reflection editor should appear")
         reflectionEditor.tap()
         reflectionEditor.typeText("Gentle integration notes for testing.")
@@ -29,14 +34,9 @@ final class SessionDetailViewUITests: XCTestCase {
         XCTAssertTrue(saveButton.waitForExistence(timeout: 2), "Save button should exist on detail view")
         saveButton.tap()
 
-        let successBanner = app.staticTexts["Reflection saved"]
-        XCTAssertTrue(successBanner.waitForExistence(timeout: 2), "Success banner should appear after saving")
+        XCTAssertFalse(app.navigationBars["Session Details"].waitForExistence(timeout: 1))
 
-        // Navigate back and reopen to ensure persistence
-        let backButton = app.navigationBars.buttons.element(boundBy: 0)
-        if backButton.waitForExistence(timeout: 2) {
-            backButton.tap()
-        }
+        // Reopen to ensure persistence
         let reopenedCell = app.cells.containing(.staticText, identifier: intention).firstMatch
         XCTAssertTrue(reopenedCell.waitForExistence(timeout: 2))
         list.scrollTo(element: reopenedCell)

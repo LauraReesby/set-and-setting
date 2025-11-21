@@ -54,6 +54,14 @@ final class SessionListUndoUITests: XCTestCase {
         if app.buttons["No thanks"].waitForExistence(timeout: 1) {
             app.buttons["No thanks"].tap()
         }
-        XCTAssertFalse(app.navigationBars["New Session"].waitForExistence(timeout: 1))
+        XCTAssertFalse(app.navigationBars["New Session"].waitForExistence(timeout: 2))
+        if app.buttons["Close"].waitForExistence(timeout: 1) {
+            app.buttons["Close"].tap()
+        }
+        let list = app.collectionViews.firstMatch.exists ? app.collectionViews.firstMatch : app.tables.firstMatch
+        let cell = app.cells.containing(.staticText, identifier: intention).firstMatch
+        if list.exists {
+            list.scrollTo(element: cell)
+        }
     }
 }

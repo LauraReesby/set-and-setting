@@ -16,6 +16,12 @@ final class SessionDetailViewModel {
     private let persistence: SessionReflectionPersisting
 
     var reflectionText: String
+    var dosage: String
+    var administration: AdministrationMethod
+    var environmentNotes: String
+    var musicNotes: String
+    var moodBefore: Int
+    var moodAfter: Int
     var isSaving = false
     var errorMessage: String?
     var showSuccessMessage = false
@@ -24,14 +30,23 @@ final class SessionDetailViewModel {
         self.session = session
         self.persistence = persistence
         self.reflectionText = session.reflections
-    }
-
-    var helperCopy: String {
-        "Capture integration notes, grounding reminders, or insights you'd like to revisit."
+        self.dosage = session.dosage
+        self.administration = session.administration
+        self.environmentNotes = session.environmentNotes
+        self.musicNotes = session.musicNotes
+        self.moodBefore = session.moodBefore
+        self.moodAfter = session.moodAfter
     }
 
     var hasChanges: Bool {
-        self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines) != self.session.reflections
+        let trimmedReflection = self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedReflection != self.session.reflections ||
+            self.dosage != self.session.dosage ||
+            self.administration != self.session.administration ||
+            self.environmentNotes != self.session.environmentNotes ||
+            self.musicNotes != self.session.musicNotes ||
+            self.moodBefore != self.session.moodBefore ||
+            self.moodAfter != self.session.moodAfter
     }
 
     func saveReflection() {
@@ -42,15 +57,26 @@ final class SessionDetailViewModel {
 
         let trimmed = self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines)
         self.session.reflections = trimmed
+        self.session.dosage = self.dosage
+        self.session.administration = self.administration
+        self.session.environmentNotes = self.environmentNotes
+        self.session.musicNotes = self.musicNotes
+        self.session.moodBefore = self.moodBefore
+        self.session.moodAfter = self.moodAfter
 
         do {
-            self.session.status = .complete
-            self.session.reminderDate = nil
+            if trimmed.isEmpty {
+                self.session.status = .needsReflection
+            } else {
+                self.session.status = .complete
+                self.session.reminderDate = nil
+            }
             try self.persistence.updateSession(self.session)
             self.reflectionText = trimmed
             self.showSuccessMessage = true
         } catch {
             self.errorMessage = "Couldn't save reflection: \(error.localizedDescription)"
+            // Revert on failure to previous values
             self.session.reflections = self.reflectionText
         }
 

@@ -43,9 +43,6 @@ struct ContentView: View {
                 .onDelete(perform: self.deleteSessions)
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
                 ToolbarItem(placement: .navigationBarLeading) {
                     self.filterMenu
                 }

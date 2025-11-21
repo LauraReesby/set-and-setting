@@ -28,7 +28,7 @@ Existing solutions require network access or expose data.
   - `treatmentType` (defaults to psilocybin) is chosen  
   - `moodBefore` slider has a value  
   - `intention` is non-empty  
-- **🟧 Needs Reflection:** Once the user saves the draft (above fields complete), the session is persisted. The app prompts: “Would you like a reminder to add reflections later?” with options **In 1 hour / Later today / Tomorrow morning / No thanks**. Selecting a reminder schedules a local notification. Sessions in this state are highlighted in the list until reflections are added.  
+- **🟧 Needs Reflection:** Once the user saves the draft (above fields complete), the session is persisted. The app prompts: “Would you like a reminder to add reflections later?” with options **In 3 hours / Tomorrow / No thanks**. Selecting a reminder schedules a local notification. Sessions in this state are highlighted in the list until reflections are added.  
 - **🟩 Complete:** Reflections (and any remaining optional fields) have been captured; the reminder (if any) is cleared.
 
 ## User Stories
@@ -98,7 +98,7 @@ Existing solutions require network access or expose data.
 | FR-008 | Delete + Undo flow + reminder cancellation when undoing. |
 | FR-009 | Accessibility (VoiceOver, Dynamic Type). |
 | FR-010 | Local encryption per iOS security layer. |
-| FR-011 | Prompt for reminder options (“In 1 hour”, “Later today”, “Tomorrow morning”, “No thanks”), schedule/cancel per selection, and surface status in list/detail. |
+| FR-011 | Prompt for reminder options (“In 3 hours”, “Tomorrow”, “No thanks”), schedule/cancel per selection, and surface status in list/detail. |
 | FR-012 | Visually separate “Complete the draft” fields from “Reflections later” fields in the SessionFormView. |
 
 ---

@@ -36,8 +36,8 @@ final class SessionFormValidationUITests: XCTestCase {
         )
 
         saveButton.tap()
-        if app.buttons["In 1 hour"].waitForExistence(timeout: 1) {
-            app.buttons["In 1 hour"].tap()
+        if app.buttons["In 3 hours"].waitForExistence(timeout: 1) {
+            app.buttons["In 3 hours"].tap()
         }
         XCTAssertFalse(app.navigationBars["New Session"].waitForExistence(timeout: 1))
 

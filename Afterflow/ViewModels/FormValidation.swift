@@ -10,7 +10,7 @@ struct ValidationResult {
 
     static let valid = ValidationResult(isValid: true, message: nil)
 
-    static func invalid(_ message: String) -> ValidationResult {
+    static func invalid(_ message: String?) -> ValidationResult {
         ValidationResult(isValid: false, message: message)
     }
 }
@@ -53,7 +53,7 @@ struct FormValidation {
         let trimmed = intention.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmed.isEmpty {
-            return ValidationResult.invalid("Please share what you hope to explore in this session")
+            return ValidationResult.invalid(nil)
         }
 
         return ValidationResult.valid
@@ -144,25 +144,35 @@ struct FormValidation {
     /// Validate complete form data
     func validateForm(_ formData: SessionFormData) -> FormValidationResult {
         var errors: [String] = []
+        var formIsValid = true
 
         // Validate intention
         let intentionResult = self.validateIntention(formData.intention)
-        if !intentionResult.isValid, let message = intentionResult.message {
-            errors.append(message)
+        if !intentionResult.isValid {
+            formIsValid = false
+            if let message = intentionResult.message {
+                errors.append(message)
+            }
         }
 
         // Validate date
         let dateResult = self.validateSessionDate(formData.sessionDate)
-        if !dateResult.isValid, let message = dateResult.message {
-            errors.append(message)
+        if !dateResult.isValid {
+            formIsValid = false
+            if let message = dateResult.message {
+                errors.append(message)
+            }
         }
 
         // Validate dosage
         let dosageResult = self.validateDosage(formData.dosage)
-        if !dosageResult.isValid, let message = dosageResult.message {
-            errors.append(message)
+        if !dosageResult.isValid {
+            formIsValid = false
+            if let message = dosageResult.message {
+                errors.append(message)
+            }
         }
 
-        return errors.isEmpty ? FormValidationResult.valid : FormValidationResult.invalid(errors)
+        return formIsValid ? FormValidationResult.valid : FormValidationResult.invalid(errors)
     }
 }
