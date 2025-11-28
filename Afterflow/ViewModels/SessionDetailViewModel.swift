@@ -7,8 +7,6 @@ protocol SessionReflectionPersisting {
     func updateSession(_ session: TherapeuticSession) throws
 }
 
-extension SessionDataService: SessionReflectionPersisting {}
-
 @MainActor
 @Observable
 final class SessionDetailViewModel {
@@ -65,10 +63,7 @@ final class SessionDetailViewModel {
         self.session.moodAfter = self.moodAfter
 
         do {
-            if trimmed.isEmpty {
-                self.session.status = .needsReflection
-            } else {
-                self.session.status = .complete
+            if !trimmed.isEmpty {
                 self.session.reminderDate = nil
             }
             try self.persistence.updateSession(self.session)

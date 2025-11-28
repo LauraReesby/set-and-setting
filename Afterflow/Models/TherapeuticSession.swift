@@ -110,14 +110,6 @@ final class TherapeuticSession {
     /// Reminder date for revisiting reflections
     var reminderDate: Date?
 
-    /// Lifecycle state for this session
-    var statusRawValue: String
-
-    var status: SessionLifecycleStatus {
-        get { SessionLifecycleStatus(rawValue: self.statusRawValue) ?? .draft }
-        set { self.statusRawValue = newValue.rawValue }
-    }
-
     // MARK: - Spotify Integration (Optional)
 
     /// Spotify playlist URI (optional, from Feature 002)
@@ -142,7 +134,6 @@ final class TherapeuticSession {
         moodBefore: Int = 5,
         moodAfter: Int = 5,
         reflections: String = "",
-        status: SessionLifecycleStatus = .draft,
         reminderDate: Date? = nil
     ) {
         self.id = UUID()
@@ -157,7 +148,6 @@ final class TherapeuticSession {
         self.moodAfter = moodAfter
         self.reflections = reflections
         self.reminderDate = reminderDate
-        self.statusRawValue = status.rawValue
         self.createdAt = Date()
         self.updatedAt = Date()
 
@@ -191,6 +181,16 @@ extension TherapeuticSession {
         !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             self.moodBefore >= 1 && self.moodBefore <= 10 &&
             self.moodAfter >= 1 && self.moodAfter <= 10
+    }
+
+    /// Derived lifecycle status based on required fields and reflections
+    var status: SessionLifecycleStatus {
+        let hasCoreFields = !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            (1...10).contains(self.moodBefore)
+        guard hasCoreFields else { return .draft }
+
+        let hasReflections = !self.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasReflections ? .complete : .needsReflection
     }
 }
 

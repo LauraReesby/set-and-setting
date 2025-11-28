@@ -22,10 +22,15 @@ struct AfterflowApp: App {
         }
     }()
 
+    private let sessionStore: SessionStore = {
+        SessionStore(modelContext: Self.sharedModelContainer.mainContext)
+    }()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .modelContainer(Self.sharedModelContainer)
+                .environment(self.sessionStore)
         }
     }
 }

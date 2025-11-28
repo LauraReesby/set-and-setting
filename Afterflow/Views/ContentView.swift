@@ -3,8 +3,8 @@ import SwiftUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(SessionStore.self) private var sessionStore
 
-    @Query private var sessions: [TherapeuticSession]
     @State private var showingSessionForm = false
     @State private var listViewModel = SessionListViewModel()
     @State private var recentlyDeleted: (session: TherapeuticSession, index: Int)?
@@ -55,7 +55,11 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Afterflow Sessions")
-            .searchable(text: self.$listViewModel.searchText, placement: .navigationBarDrawer(displayMode: .always))
+            .searchable(
+                text: self.$listViewModel.searchText,
+                placement: .toolbar,
+                prompt: "Search sessions"
+            )
         } detail: {
             Text("Select a session")
         }
@@ -76,7 +80,7 @@ struct ContentView: View {
     }
 
     private var filteredSessions: [TherapeuticSession] {
-        self.listViewModel.applyFilters(to: self.sessions)
+        self.listViewModel.applyFilters(to: self.sessionStore.sessions)
     }
 
     private var filterMenu: some View {
@@ -108,7 +112,7 @@ struct ContentView: View {
         withAnimation {
             guard let index = offsets.first else { return }
             let session = self.filteredSessions[index]
-            self.modelContext.delete(session)
+            try? self.sessionStore.delete(session)
             self.scheduleUndo(for: session, originalIndex: index)
         }
     }
@@ -128,9 +132,13 @@ struct ContentView: View {
 
     private func undoDelete() {
         guard let deleted = self.recentlyDeleted else { return }
-        self.modelContext.insert(deleted.session)
-        self.recentlyDeleted = nil
-        self.showUndoBanner = false
+        do {
+            try self.sessionStore.create(deleted.session)
+            self.recentlyDeleted = nil
+            self.showUndoBanner = false
+        } catch {
+            // keep banner visible so user can try again
+        }
         self.undoTask?.cancel()
         self.undoTask = nil
     }
@@ -143,6 +151,9 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
-        .modelContainer(for: TherapeuticSession.self, inMemory: true)
+    let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let store = SessionStore(modelContext: container.mainContext)
+    return ContentView()
+        .modelContainer(container)
+        .environment(store)
 }

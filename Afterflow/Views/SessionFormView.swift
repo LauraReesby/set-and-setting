@@ -8,7 +8,7 @@ import SwiftUI
 struct SessionFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @State private var sessionDataService: SessionDataService?
+    @Environment(SessionStore.self) private var sessionStore
 
     // MARK: - Form State
 
@@ -329,8 +329,7 @@ struct SessionFormView: View {
     // MARK: - Lifecycle
 
     private func setupInitialState() {
-        let service = self.ensureDataService()
-        if let draft = service.recoverDraft() {
+        if let draft = self.sessionStore.recoverDraft() {
             self.applyDraft(draft)
         }
 
@@ -381,16 +380,14 @@ struct SessionFormView: View {
             administration: self.selectedAdministration,
             intention: self.intention.trimmingCharacters(in: .whitespacesAndNewlines),
             moodBefore: self.moodBefore,
-            moodAfter: self.moodAfter,
-            status: .needsReflection
+            moodAfter: self.moodAfter
         )
 
         Task {
             do {
                 await self.reminderScheduler.requestPermissionIfNeeded()
-                let service = self.ensureDataService()
-                try service.createSession(newSession)
-                service.clearDraft()
+                try self.sessionStore.create(newSession)
+                self.sessionStore.clearDraft()
                 await MainActor.run {
                     self.pendingSessionForReminder = newSession
                     self.showReminderPrompt = true
@@ -406,16 +403,6 @@ struct SessionFormView: View {
     private func showError(message: String) {
         self.errorMessage = message
         self.showError = true
-    }
-
-    @discardableResult private func ensureDataService() -> SessionDataService {
-        if let service = sessionDataService {
-            return service
-        }
-
-        let service = SessionDataService(modelContext: modelContext)
-        self.sessionDataService = service
-        return service
     }
 
     private func applyDraft(_ draft: TherapeuticSession) {
@@ -434,7 +421,7 @@ struct SessionFormView: View {
         self.draftSaveTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
-            self.ensureDataService().saveDraft(snapshot)
+            self.sessionStore.saveDraft(snapshot)
         }
     }
 
@@ -448,7 +435,6 @@ struct SessionFormView: View {
             intention: self.intention,
             moodBefore: self.moodBefore,
             moodAfter: self.moodAfter,
-            status: self.sessionPhase,
             reminderDate: nil
         )
     }
@@ -459,33 +445,25 @@ struct SessionFormView: View {
             return
         }
 
-        let service = self.ensureDataService()
-
-        session.reminderDate = selection.targetDate(from: Date())
-
-        Task {
-            do {
-                try service.updateSession(session)
-                if let reminderDate = session.reminderDate, reminderDate > Date() {
-                    try await self.reminderScheduler.scheduleReminder(for: session)
-                } else {
-                    self.reminderScheduler.cancelReminder(for: session)
-                }
-            } catch {
-                await MainActor.run {
-                    self.showError(message: "Reminder preference could not be saved: \(error.localizedDescription)")
-                }
-            }
-
-            await MainActor.run {
+        Task { @MainActor in
+            if selection == .none {
+                self.reminderScheduler.cancelReminder(for: session)
                 self.pendingSessionForReminder = nil
                 self.dismiss()
+                return
             }
+
+            await self.sessionStore.setReminder(for: session, option: selection)
+            self.pendingSessionForReminder = nil
+            self.dismiss()
         }
     }
 }
 
 #Preview {
-    SessionFormView()
-        .modelContainer(for: TherapeuticSession.self, inMemory: true)
+    let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let store = SessionStore(modelContext: container.mainContext)
+    return SessionFormView()
+        .modelContainer(container)
+        .environment(store)
 }

@@ -4,12 +4,11 @@ import SwiftData
 import SwiftUI
 
 struct SessionDetailView: View {
-    @Environment(\.modelContext) private var modelContext
+    @Environment(SessionStore.self) private var sessionStore
     @Environment(\.dismiss) private var dismiss
 
     let session: TherapeuticSession
 
-    @State private var sessionDataService: SessionDataService?
     @State private var viewModel: SessionDetailViewModel?
     @FocusState private var editorFocused: Bool
 
@@ -172,22 +171,13 @@ struct SessionDetailView: View {
 
     private func prepareViewModelIfNeeded() {
         guard self.viewModel == nil else { return }
-        let service = self.ensureDataService()
-        self.viewModel = SessionDetailViewModel(session: self.session, persistence: service)
-    }
-
-    @discardableResult private func ensureDataService() -> SessionDataService {
-        if let service = self.sessionDataService {
-            return service
-        }
-
-        let service = SessionDataService(modelContext: self.modelContext)
-        self.sessionDataService = service
-        return service
+        self.viewModel = SessionDetailViewModel(session: self.session, persistence: self.sessionStore)
     }
 }
 
 #Preview {
+    let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    let store = SessionStore(modelContext: container.mainContext)
     let previewSession = TherapeuticSession(
         treatmentType: .psilocybin,
         intention: "Integrate recent therapy insights",
@@ -195,6 +185,8 @@ struct SessionDetailView: View {
         moodAfter: 8,
         reflections: "Felt a deeper sense of clarity around recurring patterns."
     )
+    try! store.create(previewSession)
     return SessionDetailView(session: previewSession)
-        .modelContainer(for: TherapeuticSession.self, inMemory: true)
+        .modelContainer(container)
+        .environment(store)
 }

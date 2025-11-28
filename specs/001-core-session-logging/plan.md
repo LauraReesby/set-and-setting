@@ -22,7 +22,7 @@ Views/
  ├── MoodRatingView.swift
  ├── SessionDetailView.swift
  └── SessionListView.swift
-Services/      SessionDataService.swift
+Services/      SessionStore.swift
 Tests/
  ├── ModelTests/
  ├── ViewModelTests/

@@ -29,11 +29,10 @@ struct SessionListPerformanceTests {
         }
         try context.save()
 
-        let service = SessionDataService(modelContext: context)
-
         var fetched: [TherapeuticSession] = []
         let duration = measureTime {
-            fetched = (try? service.fetchAllSessions()) ?? []
+            let descriptor = FetchDescriptor<TherapeuticSession>(sortBy: [SortDescriptor(\.sessionDate, order: .reverse)])
+            fetched = (try? context.fetch(descriptor)) ?? []
         }
 
         #expect(fetched.count == 1000)

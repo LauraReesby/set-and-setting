@@ -19,7 +19,7 @@ _Covers tasks T010, T020, T025, and T030 for Feature 001 – Core Session Loggin
   - To profile locally, open Instruments > Templates > `App Launch` or `Core Animation`, attach to `Afterflow`, and capture during the first 30 s of SessionForm usage.  
 
 ## Privacy Compliance
-- **Local-only storage**: `SessionDataService` persists data via SwiftData + UserDefaults (see `Afterflow/Services/SessionDataService.swift`), with no networking frameworks linked.  
+- **Local-only storage**: `SessionStore` persists data via SwiftData + UserDefaults drafts (see `Afterflow/Services/SessionStore.swift`), with no networking frameworks linked.  
 - **No analytics/SDKs**: Inspect the produced binary via `otool -L Afterflow.app/Afterflow` after a build; the project links only Apple frameworks (SwiftUI, SwiftData, Combine).  
 - **User data scope**: Mood ratings, intentions, and drafts remain on-device; `clearDraft()` wipes any temporary payloads when the form is saved or dismissed.  
 - **QA checklist**: Confirmed no sensitive fields are logged via `print` outside of error messages, and auto-save payloads expire after 24 h.  

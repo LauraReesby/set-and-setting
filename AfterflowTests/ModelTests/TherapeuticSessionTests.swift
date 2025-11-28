@@ -48,7 +48,6 @@ struct TherapeuticSessionTests {
             moodBefore: 3,
             moodAfter: 8,
             reflections: "Profound insights",
-            status: .needsReflection,
             reminderDate: reminderDate
         )
 
@@ -62,7 +61,7 @@ struct TherapeuticSessionTests {
         #expect(session.moodBefore == 3)
         #expect(session.moodAfter == 8)
         #expect(session.reflections == "Profound insights")
-        #expect(session.status == .needsReflection)
+        #expect(session.status == .complete)
         #expect(session.reminderDate == reminderDate)
     }
 
