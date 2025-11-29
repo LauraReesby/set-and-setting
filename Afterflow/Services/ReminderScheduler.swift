@@ -22,39 +22,67 @@ final class ReminderScheduler {
         self.notificationCenter = notificationCenter
     }
 
-    func scheduleReminder(for session: TherapeuticSession) async throws {
-        guard let reminderDate = session.reminderDate,
-              reminderDate > Date()
-        else { return }
+    func setReminder(
+        for session: TherapeuticSession,
+        option: ReminderOption,
+        now: Date = Date()
+    ) async {
+        let identifier = self.identifier(for: session)
+        self.notificationCenter.removePendingNotificationRequests(withIdentifiers: [identifier])
 
-        let authStatus = await notificationCenter.authorizationStatus()
-        guard authStatus == .authorized || authStatus == .provisional else {
+        switch option {
+        case .none:
+            session.reminderDate = nil
             return
+        case .threeHours, .tomorrow:
+            guard let targetDate = option.targetDate(from: now), targetDate > now else {
+                session.reminderDate = nil
+                return
+            }
+
+            await self.requestPermissionIfNeeded()
+            let authStatus = await notificationCenter.authorizationStatus()
+            guard authStatus == .authorized || authStatus == .provisional else {
+                session.reminderDate = nil
+                return
+            }
+
+            session.reminderDate = targetDate
+
+            let content = UNMutableNotificationContent()
+            content.title = "Needs Reflection"
+            content.body = "Tap to add reflections for \(session.displayTitle)."
+            content.sound = .default
+            content.userInfo = ["sessionID": session.id.uuidString]
+
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: targetDate.timeIntervalSince(now),
+                repeats: false
+            )
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: trigger
+            )
+            do {
+                try await self.notificationCenter.add(request)
+            } catch {
+                session.reminderDate = nil
+            }
         }
-
-        let content = UNMutableNotificationContent()
-        content.title = "Needs Reflection"
-        content.body = "Tap to add reflections for \(session.displayTitle)."
-        content.sound = .default
-        content.userInfo = ["sessionID": session.id.uuidString]
-
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: reminderDate.timeIntervalSinceNow, repeats: false)
-        let request = UNNotificationRequest(
-            identifier: "reminder_\(session.id.uuidString)",
-            content: content,
-            trigger: trigger
-        )
-        try await self.notificationCenter.add(request)
-    }
-
-    func cancelReminder(for session: TherapeuticSession) {
-        self.notificationCenter
-            .removePendingNotificationRequests(withIdentifiers: ["reminder_\(session.id.uuidString)"])
     }
 
     func requestPermissionIfNeeded() async {
         let currentStatus = await notificationCenter.authorizationStatus()
         guard currentStatus == .notDetermined else { return }
         _ = try? await self.notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
+    }
+
+    private func identifier(for session: TherapeuticSession) -> String {
+        "reminder_\(session.id.uuidString)"
+    }
+
+    func cancelReminder(for session: TherapeuticSession) {
+        self.notificationCenter.removePendingNotificationRequests(withIdentifiers: [self.identifier(for: session)])
     }
 }

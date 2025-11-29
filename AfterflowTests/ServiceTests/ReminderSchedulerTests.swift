@@ -11,11 +11,11 @@ struct ReminderSchedulerTests {
         let scheduler = ReminderScheduler(notificationCenter: mockCenter)
 
         let session = TherapeuticSession(intention: "Test", moodBefore: 5)
-        session.reminderDate = Date().addingTimeInterval(3600)
-
-        try await scheduler.scheduleReminder(for: session)
+        let now = Date(timeIntervalSince1970: 0)
+        await scheduler.setReminder(for: session, option: .threeHours, now: now)
         #expect(mockCenter.addedRequests.count == 1)
         #expect(mockCenter.addedRequests.first?.identifier == "reminder_\(session.id.uuidString)")
+        #expect(session.reminderDate == now.addingTimeInterval(10_800))
     }
 
     @Test("Scheduler cancels request when reminder removed") func cancelReminderRemovesRequest() {

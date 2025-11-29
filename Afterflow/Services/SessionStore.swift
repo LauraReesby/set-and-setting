@@ -55,14 +55,12 @@ final class SessionStore {
         try saveAndRefresh()
     }
 
-    func setReminder(for session: TherapeuticSession, option: ReminderOption) async {
-        session.reminderDate = option.targetDate(from: Date())
-        do {
-            try self.modelContext.save()
-            await self.scheduleReminderIfNeeded(for: session)
-        } catch {
-            // For now, silently ignore failures; callers may choose to surface errors.
+    func setReminder(for session: TherapeuticSession, option: ReminderOption) async throws {
+        await reminderScheduler.setReminder(for: session, option: option)
+        if modelContext.hasChanges {
+            try modelContext.save()
         }
+        self.reload()
     }
 
     // MARK: - Helpers
@@ -77,7 +75,9 @@ final class SessionStore {
     private func scheduleReminderIfNeeded(for session: TherapeuticSession) async {
         switch session.status {
         case .needsReflection:
-            try? await reminderScheduler.scheduleReminder(for: session)
+            if session.reminderDate == nil {
+                reminderScheduler.cancelReminder(for: session)
+            }
         case .draft, .complete:
             reminderScheduler.cancelReminder(for: session)
         }

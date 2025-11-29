@@ -46,7 +46,7 @@ struct SessionStoreTests {
         let session = TherapeuticSession(intention: "Needs reflection", moodBefore: 5)
         try store.create(session)
 
-        await store.setReminder(for: session, option: .threeHours)
+        try await store.setReminder(for: session, option: .threeHours)
         #expect(session.reminderDate != nil)
         #expect(mockCenter.addedRequests.count == 1)
     }

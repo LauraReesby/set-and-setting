@@ -32,9 +32,9 @@ struct SessionFormView: View {
     // MARK: - Validation
 
     @State private var validator = FormValidation()
-    @State private var intentionValidation: ValidationResult?
-    @State private var dateValidation: ValidationResult?
-    @State private var dosageValidation: ValidationResult?
+    @State private var intentionValidation: FieldValidationState?
+    @State private var dateValidation: FieldValidationState?
+    @State private var dosageValidation: FieldValidationState?
     @State private var validationTask: Task<Void, Never>?
     @State private var draftSaveTask: Task<Void, Never>?
 
@@ -47,7 +47,6 @@ struct SessionFormView: View {
     @State private var dateNormalizationMessage = ""
     @State private var showReminderPrompt = false
     @State private var pendingSessionForReminder: TherapeuticSession?
-    private let reminderScheduler = ReminderScheduler()
 
     // MARK: - Computed Properties
 
@@ -59,8 +58,7 @@ struct SessionFormView: View {
             administration: selectedAdministration,
             intention: intention
         )
-        let formValidation = self.validator.validateForm(formData)
-        return formValidation.isValid
+        return self.validator.validateForm(formData)
     }
 
     private var sessionPhase: SessionLifecycleStatus {
@@ -360,10 +358,8 @@ struct SessionFormView: View {
             intention: intention
         )
 
-        let formValidation = self.validator.validateForm(formData)
-
-        guard formValidation.isValid else {
-            self.showError(message: formValidation.errors.first ?? "Please check your inputs")
+        guard self.validator.validateForm(formData) else {
+            self.performValidation()
             return
         }
 
@@ -387,7 +383,6 @@ struct SessionFormView: View {
 
         Task {
             do {
-                await self.reminderScheduler.requestPermissionIfNeeded()
                 try self.sessionStore.create(newSession)
                 self.sessionStore.clearDraft()
                 await MainActor.run {
@@ -448,16 +443,13 @@ struct SessionFormView: View {
         }
 
         Task { @MainActor in
-            if selection == .none {
-                self.reminderScheduler.cancelReminder(for: session)
+            do {
+                try await self.sessionStore.setReminder(for: session, option: selection)
                 self.pendingSessionForReminder = nil
                 self.dismiss()
-                return
+            } catch {
+                self.showError(message: "Reminder preference could not be saved: \(error.localizedDescription)")
             }
-
-            await self.sessionStore.setReminder(for: session, option: selection)
-            self.pendingSessionForReminder = nil
-            self.dismiss()
         }
     }
 }

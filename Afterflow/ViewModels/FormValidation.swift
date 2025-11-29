@@ -3,16 +3,12 @@
 import Foundation
 import SwiftData
 
-/// Result of a field validation with therapeutic tone messaging
-struct ValidationResult {
+/// Represents whether a particular form field passes validation.
+struct FieldValidationState {
     let isValid: Bool
-    let message: String?
 
-    static let valid = ValidationResult(isValid: true, message: nil)
-
-    static func invalid(_ message: String?) -> ValidationResult {
-        ValidationResult(isValid: false, message: message)
-    }
+    static let valid = FieldValidationState(isValid: true)
+    static let invalid = FieldValidationState(isValid: false)
 }
 
 /// Form data structure for session creation
@@ -22,18 +18,6 @@ struct SessionFormData {
     let dosage: String
     let administration: AdministrationMethod
     let intention: String
-}
-
-/// Complete form validation result
-struct FormValidationResult {
-    let isValid: Bool
-    let errors: [String]
-
-    static let valid = FormValidationResult(isValid: true, errors: [])
-
-    static func invalid(_ errors: [String]) -> FormValidationResult {
-        FormValidationResult(isValid: false, errors: errors)
-    }
 }
 
 /// Form validation service with therapeutic tone messaging
@@ -48,39 +32,35 @@ struct FormValidation {
 
     // MARK: - Validation Methods
 
-    /// Validate intention field with therapeutic messaging
-    func validateIntention(_ intention: String) -> ValidationResult {
+    /// Validate intention field
+    func validateIntention(_ intention: String) -> FieldValidationState {
         let trimmed = intention.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmed.isEmpty {
-            return ValidationResult.invalid(nil)
+            return .invalid
         }
 
-        return ValidationResult.valid
+        return .valid
     }
 
     /// Validate session date with enhanced normalization and therapeutic messaging
-    func validateSessionDate(_ date: Date) -> ValidationResult {
+    func validateSessionDate(_ date: Date) -> FieldValidationState {
         let now = Date()
         let normalizedDate = self.normalizeSessionDate(date)
 
         // Check if date is too far in the future
         let maxFutureDate = now.addingTimeInterval(Self.futureToleranceInterval)
         if normalizedDate > maxFutureDate {
-            return ValidationResult.invalid("Please choose a date from today or earlier")
+            return .invalid
         }
 
         // Check if date is unreasonably old for therapeutic sessions
         let earliestDate = now.addingTimeInterval(Self.earliestValidSessionDate)
         if normalizedDate < earliestDate {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .none
-            let earliestDateString = formatter.string(from: earliestDate)
-            return ValidationResult.invalid("Please choose a date after \(earliestDateString) for accurate tracking")
+            return .invalid
         }
 
-        return ValidationResult.valid
+        return .valid
     }
 
     /// Normalize session date for therapeutic context
@@ -125,54 +105,26 @@ struct FormValidation {
     }
 
     /// Validate dosage field (optional but with length limits)
-    func validateDosage(_ dosage: String) -> ValidationResult {
+    func validateDosage(_ dosage: String) -> FieldValidationState {
         let trimmed = dosage.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Empty is valid (optional field)
         if trimmed.isEmpty {
-            return ValidationResult.valid
+            return .valid
         }
 
         // Check for extremely long entries
         if trimmed.count > 100 {
-            return ValidationResult.invalid("Please keep dosage brief for easier tracking")
+            return .invalid
         }
 
-        return ValidationResult.valid
+        return .valid
     }
 
     /// Validate complete form data
-    func validateForm(_ formData: SessionFormData) -> FormValidationResult {
-        var errors: [String] = []
-        var formIsValid = true
-
-        // Validate intention
-        let intentionResult = self.validateIntention(formData.intention)
-        if !intentionResult.isValid {
-            formIsValid = false
-            if let message = intentionResult.message {
-                errors.append(message)
-            }
-        }
-
-        // Validate date
-        let dateResult = self.validateSessionDate(formData.sessionDate)
-        if !dateResult.isValid {
-            formIsValid = false
-            if let message = dateResult.message {
-                errors.append(message)
-            }
-        }
-
-        // Validate dosage
-        let dosageResult = self.validateDosage(formData.dosage)
-        if !dosageResult.isValid {
-            formIsValid = false
-            if let message = dosageResult.message {
-                errors.append(message)
-            }
-        }
-
-        return formIsValid ? FormValidationResult.valid : FormValidationResult.invalid(errors)
+    func validateForm(_ formData: SessionFormData) -> Bool {
+        self.validateIntention(formData.intention).isValid &&
+            self.validateSessionDate(formData.sessionDate).isValid &&
+            self.validateDosage(formData.dosage).isValid
     }
 }

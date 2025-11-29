@@ -12,7 +12,6 @@ struct FormValidationTests {
         let result = validation.validateIntention("Connect with inner wisdom")
 
         #expect(result.isValid == true)
-        #expect(result.message == nil)
     }
 
     @Test("Empty intention fails validation with therapeutic message") func emptyIntentionValidation() async throws {
@@ -21,7 +20,6 @@ struct FormValidationTests {
         let result = validation.validateIntention("")
 
         #expect(result.isValid == false)
-        #expect(result.message == nil)
     }
 
     @Test("Current date passes validation") func currentDateValidation() async throws {
@@ -30,7 +28,6 @@ struct FormValidationTests {
         let result = validation.validateSessionDate(Date())
 
         #expect(result.isValid == true)
-        #expect(result.message == nil)
     }
 
     @Test("Future date fails validation with therapeutic message") func futureDateValidation() async throws {
@@ -40,7 +37,6 @@ struct FormValidationTests {
         let result = validation.validateSessionDate(futureDate)
 
         #expect(result.isValid == false)
-        #expect(result.message == "Please choose a date from today or earlier")
     }
 
     @Test("Date within 1 hour future tolerance passes validation") func futureToleranceValidation() async throws {
@@ -50,7 +46,6 @@ struct FormValidationTests {
         let result = validation.validateSessionDate(nearFutureDate)
 
         #expect(result.isValid == true)
-        #expect(result.message == nil)
     }
 
     @Test("Very old date fails validation with therapeutic message") func veryOldDateValidation() async throws {
@@ -60,7 +55,6 @@ struct FormValidationTests {
         let result = validation.validateSessionDate(veryOldDate)
 
         #expect(result.isValid == false)
-        #expect(result.message?.contains("Please choose a date after") == true)
     }
 
     @Test("Date normalization rounds to nearest 15 minutes") func dateNormalization() async throws {
@@ -122,7 +116,6 @@ struct FormValidationTests {
         let result = validation.validateDosage("")
 
         #expect(result.isValid == true)
-        #expect(result.message == nil)
     }
 
     @Test("Valid dosage passes validation") func validDosageValidation() async throws {
@@ -131,7 +124,6 @@ struct FormValidationTests {
         let result = validation.validateDosage("3.5g")
 
         #expect(result.isValid == true)
-        #expect(result.message == nil)
     }
 
     @Test("Extremely long dosage shows gentle guidance") func longDosageValidation() async throws {
@@ -141,7 +133,6 @@ struct FormValidationTests {
         let result = validation.validateDosage(longDosage)
 
         #expect(result.isValid == false)
-        #expect(result.message == "Please keep dosage brief for easier tracking")
     }
 
     // MARK: - Form Data Tests
@@ -159,35 +150,6 @@ struct FormValidationTests {
 
         let result = validation.validateForm(formData)
 
-        #expect(result.isValid == true)
-        #expect(result.errors.isEmpty)
-    }
-
-    // MARK: - Therapeutic Tone Tests
-
-    @Test("All error messages use therapeutic tone") func therapeuticTone() async throws {
-        let validation = FormValidation()
-
-        // Test all validation messages for therapeutic tone
-        let intentionResult = validation.validateIntention("")
-        let dateResult = validation.validateSessionDate(Date().addingTimeInterval(86400))
-        let dosageResult = validation.validateDosage(String(repeating: "x", count: 200))
-
-        // Messages should be gentle and supportive
-        let messages = [
-            intentionResult.message,
-            dateResult.message,
-            dosageResult.message
-        ].compactMap { $0 }
-
-        for message in messages {
-            #expect(!message.isEmpty)
-
-            // Should not use harsh language
-            #expect(!message.lowercased().contains("error"))
-            #expect(!message.lowercased().contains("invalid"))
-            #expect(!message.lowercased().contains("wrong"))
-            #expect(!message.lowercased().contains("failed"))
-        }
+        #expect(result == true)
     }
 }
