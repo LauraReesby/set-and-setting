@@ -61,8 +61,10 @@ final class SessionDetailViewUITests: XCTestCase {
             app.keyboards.buttons["Next"].tap()
         }
 
-        let intentionField = app.textFields["intentionField"]
-        XCTAssertTrue(intentionField.waitForExistence(timeout: 3))
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist")
+            return
+        }
         intentionField.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
         intentionField.typeText(intention)

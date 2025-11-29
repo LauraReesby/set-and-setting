@@ -25,6 +25,8 @@ struct SessionDetailView: View {
         }
         .navigationTitle("Session Details")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.visible)
+        .scrollDismissesKeyboard(.immediately)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("Save") {
@@ -177,7 +179,7 @@ struct SessionDetailView: View {
 
 #Preview {
     let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let store = SessionStore(modelContext: container.mainContext)
+    let store = SessionStore(modelContext: container.mainContext, owningContainer: container)
     let previewSession = TherapeuticSession(
         treatmentType: .psilocybin,
         intention: "Integrate recent therapy insights",

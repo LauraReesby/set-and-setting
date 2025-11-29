@@ -51,8 +51,10 @@ final class SessionMoodRatingUITests: XCTestCase {
         let formNavBar = app.navigationBars["New Session"]
         XCTAssertTrue(formNavBar.waitForExistence(timeout: 3), "Session form should appear")
 
-        let intentionField = app.textFields["intentionField"]
-        XCTAssertTrue(intentionField.waitForExistence(timeout: 2), "Intention field should exist")
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist")
+            return app.textFields["intentionField"]
+        }
         return intentionField
     }
 

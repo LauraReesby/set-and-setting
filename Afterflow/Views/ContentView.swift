@@ -60,11 +60,18 @@ struct ContentView: View {
                 placement: .toolbar,
                 prompt: "Search sessions"
             )
+            .listStyle(.insetGrouped)
+            .toolbarBackground(.visible, for: .automatic)
+            .scrollDismissesKeyboard(.immediately)
         } detail: {
             Text("Select a session")
         }
         .sheet(isPresented: self.$showingSessionForm) {
             SessionFormView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(16)
+                .toolbarBackground(.visible, for: .automatic)
         }
         .overlay(alignment: .bottom) {
             if self.showUndoBanner, let deletedSession = recentlyDeleted?.session {
@@ -152,7 +159,7 @@ struct ContentView: View {
 
 #Preview {
     let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let store = SessionStore(modelContext: container.mainContext)
+    let store = SessionStore(modelContext: container.mainContext, owningContainer: container)
     return ContentView()
         .modelContainer(container)
         .environment(store)

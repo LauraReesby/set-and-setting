@@ -8,6 +8,7 @@ import SwiftData
 final class SessionStore {
     private let modelContext: ModelContext
     private let reminderScheduler: ReminderScheduler
+    private let owningContainer: ModelContainer?
     private let draftDefaults: UserDefaults
     private let draftPayloadKey = "session_draft_payload"
     private let draftTimestampKey = "session_draft_timestamp"
@@ -16,10 +17,12 @@ final class SessionStore {
 
     init(
         modelContext: ModelContext,
+        owningContainer: ModelContainer? = nil,
         reminderScheduler: ReminderScheduler? = nil,
         draftDefaults: UserDefaults = .standard
     ) {
         self.modelContext = modelContext
+        self.owningContainer = owningContainer
         self.reminderScheduler = reminderScheduler ?? ReminderScheduler()
         self.draftDefaults = draftDefaults
         self.reload()

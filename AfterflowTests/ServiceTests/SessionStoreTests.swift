@@ -60,7 +60,12 @@ struct SessionStoreTests {
         mockCenter.authorizationStatus = .authorized
         let scheduler = ReminderScheduler(notificationCenter: mockCenter)
         let defaults = UserDefaults(suiteName: "SessionStoreTests-\(UUID().uuidString)")!
-        let store = SessionStore(modelContext: container.mainContext, reminderScheduler: scheduler, draftDefaults: defaults)
+        let store = SessionStore(
+            modelContext: container.mainContext,
+            owningContainer: container,
+            reminderScheduler: scheduler,
+            draftDefaults: defaults
+        )
         return (store, mockCenter)
     }
 }

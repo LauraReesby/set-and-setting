@@ -41,7 +41,11 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
             app.keyboards.buttons["Next"].tap()
 
             // Verify intention field gets focus
-            let intentionField = app.textFields["intentionField"]
+            guard let intentionField = app.waitForTextInput("intentionField") else {
+                XCTFail("Intention field should exist")
+                return
+            }
+
             XCTAssertTrue(intentionField.hasKeyboardFocus, "Intention field should receive focus after tapping Next")
         }
     }
@@ -108,8 +112,10 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         self.dismissKeyboardIfPresent(app)
 
         // Now test the intention field (last field)
-        let intentionField = app.textFields["intentionField"]
-        XCTAssertTrue(intentionField.waitForExistence(timeout: 5), "Intention field should exist")
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist")
+            return
+        }
 
         // Tap to focus and activate keyboard
         intentionField.tap()
@@ -156,9 +162,10 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
         }
 
         // Test intention field accessibility
-        let intentionField = app.textFields["intentionField"]
-        print("DEBUG: Looking for intention field...")
-        XCTAssertTrue(intentionField.waitForExistence(timeout: 5), "Intention field should exist")
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist")
+            return
+        }
 
         if intentionField.exists {
             print("DEBUG: Intention field exists, testing interaction...")
@@ -194,7 +201,10 @@ final class SessionFormKeyboardNavigationTests: XCTestCase {
 
         // Verify form fields are accessible in logical order
         let dosageField = app.textFields["dosageField"]
-        let intentionField = app.textFields["intentionField"]
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist and be accessible")
+            return
+        }
 
         XCTAssertTrue(dosageField.exists, "Dosage field should exist and be accessible")
         XCTAssertTrue(intentionField.exists, "Intention field should exist and be accessible")

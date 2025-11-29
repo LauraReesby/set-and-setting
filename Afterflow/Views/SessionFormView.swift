@@ -241,7 +241,9 @@ struct SessionFormView: View {
             .onTapGesture {
                 self.dismissKeyboard()
             }
+            .scrollContentBackground(.visible)
         }
+        .scrollDismissesKeyboard(.immediately)
         .alert("Error", isPresented: self.$showError) {
             Button("OK") {}
         } message: {
@@ -462,7 +464,7 @@ struct SessionFormView: View {
 
 #Preview {
     let container = try! ModelContainer(for: TherapeuticSession.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
-    let store = SessionStore(modelContext: container.mainContext)
+    let store = SessionStore(modelContext: container.mainContext, owningContainer: container)
     return SessionFormView()
         .modelContainer(container)
         .environment(store)

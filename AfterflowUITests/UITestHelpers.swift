@@ -17,6 +17,34 @@ extension XCTestCase {
     }
 }
 
+extension XCUIApplication {
+    func waitForTextInput(_ identifier: String, timeout: TimeInterval = 5) -> XCUIElement? {
+        let deadline = Date().addingTimeInterval(timeout)
+        let field = self.textFields[identifier]
+        let textView = self.textViews[identifier]
+        let container = self.primaryScrollableContainer
+
+        while Date() < deadline {
+            if field.exists { return field }
+            if textView.exists { return textView }
+            if let container {
+                container.swipeUp()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            } else {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+            }
+        }
+        return nil
+    }
+
+    private var primaryScrollableContainer: XCUIElement? {
+        if self.collectionViews.firstMatch.exists { return self.collectionViews.firstMatch }
+        if self.tables.firstMatch.exists { return self.tables.firstMatch }
+        if self.scrollViews.firstMatch.exists { return self.scrollViews.firstMatch }
+        return nil
+    }
+}
+
 extension XCUIElement {
     func waitForHittable(timeout: TimeInterval = 3) {
         let predicate = NSPredicate(format: "isHittable == true")
