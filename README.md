@@ -4,7 +4,7 @@ A private, offline-first iOS app for logging psychedelic-assisted therapy sessio
 
 ## Overview
 
-Afterflow is a therapeutic session logging app designed for individuals undergoing psychedelic-assisted therapy. It provides a safe, private space to record intentions, environment details, music, mood changes, and post-session reflections—all while maintaining complete privacy and working entirely offline.
+Afterflow is a therapeutic session logging app designed for individuals undergoing psychedelic-assisted therapy. It provides a safe, private space to record intentions, environment details, mood changes, and post-session reflections—all while maintaining complete privacy and working entirely offline.
 
 ### Key Features
 
@@ -171,7 +171,7 @@ AfterflowTests/
 
 specs/
 ├── 001-core-session-logging/
-├── 002-spotify-integration/
+├── 002-music-links/
 └── 003-data-export/
 ```
 
@@ -206,7 +206,7 @@ Afterflow follows a clean architecture pattern optimized for SwiftUI:
 - [x] Date/treatment type pickers with auto-save/draft recovery
 
 ### ✅ Phase 3–5: Enhanced UI Components
-- [x] Environment and music input fields with helper copy
+- [x] Environment and music input fields
 - [x] Mood rating sliders with emoji map + accessibility tests
 - [x] Session detail view with editable reflections and persistence error handling
 

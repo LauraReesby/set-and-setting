@@ -31,7 +31,7 @@ This guide captures the expectations for contributors extending Afterflow’s pr
 
 ## Commit & Pull Request Guidelines
 - Match existing history: concise, present-tense subjects (`session tasks completed`, `clean up`) without prefixes; squash micro commits locally.
-- Reference issues or specs in the body (`Specs: 002-spotify-integration`) and describe user value plus risk mitigations.
+- Reference issues or specs in the body (`Specs: 002-music-links`) and describe user value plus risk mitigations.
 - PRs must include: summary, screenshots for UI changes, simulator/device target, testing checklist, and description of privacy implications (data touched, storage location).
 - Tag reviewers who own the touched area (`Models`, `Services`, etc.) and confirm that `specs/` updates accompany any feature-level change.
 

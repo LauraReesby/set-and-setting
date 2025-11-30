@@ -140,13 +140,15 @@ private struct SessionDraft: Codable {
     let administration: String
     let intention: String
     let environmentNotes: String
-    let musicNotes: String
     let moodBefore: Int
     let moodAfter: Int
     let reflections: String
-    let spotifyPlaylistURI: String?
-    let spotifyPlaylistName: String?
-    let spotifyPlaylistImageURL: String?
+    let musicLinkURL: String?
+    let musicLinkWebURL: String?
+    let musicLinkTitle: String?
+    let musicLinkAuthorName: String?
+    let musicLinkArtworkURL: String?
+    let musicLinkProviderRawValue: String?
     let reminderDate: Date?
 
     init(session: TherapeuticSession) {
@@ -155,13 +157,15 @@ private struct SessionDraft: Codable {
         self.administration = session.administrationRawValue
         self.intention = session.intention
         self.environmentNotes = session.environmentNotes
-        self.musicNotes = session.musicNotes
         self.moodBefore = session.moodBefore
         self.moodAfter = session.moodAfter
         self.reflections = session.reflections
-        self.spotifyPlaylistURI = session.spotifyPlaylistURI
-        self.spotifyPlaylistName = session.spotifyPlaylistName
-        self.spotifyPlaylistImageURL = session.spotifyPlaylistImageURL
+        self.musicLinkURL = session.musicLinkURL
+        self.musicLinkWebURL = session.musicLinkWebURL
+        self.musicLinkTitle = session.musicLinkTitle
+        self.musicLinkAuthorName = session.musicLinkAuthorName
+        self.musicLinkArtworkURL = session.musicLinkArtworkURL
+        self.musicLinkProviderRawValue = session.musicLinkProviderRawValue
         self.reminderDate = session.reminderDate
     }
 
@@ -172,15 +176,17 @@ private struct SessionDraft: Codable {
             administration: AdministrationMethod(rawValue: administration) ?? .oral,
             intention: intention,
             environmentNotes: environmentNotes,
-            musicNotes: musicNotes,
             moodBefore: moodBefore,
             moodAfter: moodAfter,
             reflections: reflections,
             reminderDate: reminderDate
         )
-        session.spotifyPlaylistURI = self.spotifyPlaylistURI
-        session.spotifyPlaylistName = self.spotifyPlaylistName
-        session.spotifyPlaylistImageURL = self.spotifyPlaylistImageURL
+        session.musicLinkURL = self.musicLinkURL
+        session.musicLinkWebURL = self.musicLinkWebURL
+        session.musicLinkTitle = self.musicLinkTitle
+        session.musicLinkAuthorName = self.musicLinkAuthorName
+        session.musicLinkArtworkURL = self.musicLinkArtworkURL
+        session.musicLinkProviderRawValue = self.musicLinkProviderRawValue
         return session
     }
 }

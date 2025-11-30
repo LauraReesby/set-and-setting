@@ -16,7 +16,6 @@ final class SessionDetailViewModel {
     var reflectionText: String
     var administration: AdministrationMethod
     var environmentNotes: String
-    var musicNotes: String
     var moodBefore: Int
     var moodAfter: Int
     var isSaving = false
@@ -29,7 +28,6 @@ final class SessionDetailViewModel {
         self.reflectionText = session.reflections
         self.administration = session.administration
         self.environmentNotes = session.environmentNotes
-        self.musicNotes = session.musicNotes
         self.moodBefore = session.moodBefore
         self.moodAfter = session.moodAfter
     }
@@ -39,7 +37,6 @@ final class SessionDetailViewModel {
         return trimmedReflection != self.session.reflections ||
             self.administration != self.session.administration ||
             self.environmentNotes != self.session.environmentNotes ||
-            self.musicNotes != self.session.musicNotes ||
             self.moodBefore != self.session.moodBefore ||
             self.moodAfter != self.session.moodAfter
     }
@@ -54,7 +51,6 @@ final class SessionDetailViewModel {
         self.session.reflections = trimmed
         self.session.administration = self.administration
         self.session.environmentNotes = self.environmentNotes
-        self.session.musicNotes = self.musicNotes
         self.session.moodBefore = self.moodBefore
         self.session.moodAfter = self.moodAfter
 

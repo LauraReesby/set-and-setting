@@ -34,6 +34,87 @@ enum AdministrationMethod: String, CaseIterable {
     }
 }
 
+enum MusicLinkProvider: String, Codable, CaseIterable {
+    case spotify
+    case youtube
+    case soundcloud
+    case appleMusic
+    case bandcamp
+    case linkOnly
+    case unknown
+
+    var displayName: String {
+        switch self {
+        case .spotify: "Spotify"
+        case .youtube: "YouTube"
+        case .soundcloud: "SoundCloud"
+        case .appleMusic: "Apple Music"
+        case .bandcamp: "Bandcamp"
+        case .linkOnly, .unknown: "Playlist Link"
+        }
+    }
+
+    var supportsOEmbed: Bool {
+        switch self {
+        case .spotify, .youtube:
+            true
+        default:
+            false
+        }
+    }
+
+    func oEmbedURL(for canonicalURL: URL) -> URL? {
+        guard self.supportsOEmbed else { return nil }
+        var components = URLComponents()
+        switch self {
+        case .spotify:
+            components.scheme = "https"
+            components.host = "open.spotify.com"
+            components.path = "/oembed"
+        case .youtube:
+            components.scheme = "https"
+            components.host = "www.youtube.com"
+            components.path = "/oembed"
+            components.queryItems = [URLQueryItem(name: "format", value: "json")]
+        default:
+            return nil
+        }
+        var queryItems = components.queryItems ?? []
+        queryItems.append(URLQueryItem(name: "url", value: canonicalURL.absoluteString))
+        components.queryItems = queryItems
+        return components.url
+    }
+
+    func fallbackWebURL(for originalURL: URL) -> URL? {
+        switch self {
+        case .spotify:
+            if originalURL.scheme == "spotify" {
+                let segments = originalURL.absoluteString.split(separator: ":")
+                guard segments.count >= 3 else { return nil }
+                let type = segments[1]
+                let id = segments[2]
+                return URL(string: "https://open.spotify.com/\(type)/\(id)")
+            }
+            return enforceHTTPS(for: originalURL)
+        case .youtube:
+            if originalURL.host == "youtu.be" {
+                let videoID = originalURL.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                guard !videoID.isEmpty else { return nil }
+                return URL(string: "https://www.youtube.com/watch?v=\(videoID)")
+            }
+            return enforceHTTPS(for: originalURL)
+        case .soundcloud, .appleMusic, .bandcamp, .linkOnly, .unknown:
+            return enforceHTTPS(for: originalURL)
+        }
+    }
+
+    private func enforceHTTPS(for url: URL) -> URL? {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+        if components.scheme == nil || components.scheme == "http" { components.scheme = "https" }
+        return components.url
+    }
+}
+
 /// Core therapeutic session data model following constitutional principles:
 /// - Privacy-First: All data stored locally, no cloud sync
 /// - Therapeutic Value-First: Designed for reflection and growth
@@ -88,9 +169,6 @@ final class TherapeuticSession {
     /// Description of the physical environment
     var environmentNotes: String
 
-    /// Music notes or playlist information
-    var musicNotes: String
-
     // MARK: - Mood Tracking
 
     /// Mood rating before session (1-10 scale)
@@ -107,16 +185,25 @@ final class TherapeuticSession {
     /// Reminder date for revisiting reflections
     var reminderDate: Date?
 
-    // MARK: - Spotify Integration (Optional)
+    // MARK: - Music Link Integration (Optional)
 
-    /// Spotify playlist URI (optional, from Feature 002)
-    var spotifyPlaylistURI: String?
+    /// Original playlist URL supplied by the user (could be app-specific scheme)
+    var musicLinkURL: String?
 
-    /// Spotify playlist name for display (optional)
-    var spotifyPlaylistName: String?
+    /// Canonical HTTPS URL used for previews/fallbacks
+    var musicLinkWebURL: String?
 
-    /// Spotify playlist cover art URL (optional)
-    var spotifyPlaylistImageURL: String?
+    /// Playlist title returned by metadata service
+    var musicLinkTitle: String?
+
+    /// Playlist author/curator name (optional)
+    var musicLinkAuthorName: String?
+
+    /// Playlist artwork/thumbnail URL
+    var musicLinkArtworkURL: String?
+
+    /// Underlying provider raw value
+    var musicLinkProviderRawValue: String?
 
     // MARK: - Initialization
 
@@ -126,7 +213,6 @@ final class TherapeuticSession {
         administration: AdministrationMethod = .oral,
         intention: String = "",
         environmentNotes: String = "",
-        musicNotes: String = "",
         moodBefore: Int = 5,
         moodAfter: Int = 5,
         reflections: String = "",
@@ -138,7 +224,6 @@ final class TherapeuticSession {
         self.administrationRawValue = administration.rawValue
         self.intention = intention
         self.environmentNotes = environmentNotes
-        self.musicNotes = musicNotes
         self.moodBefore = moodBefore
         self.moodAfter = moodAfter
         self.reflections = reflections
@@ -146,10 +231,12 @@ final class TherapeuticSession {
         self.createdAt = Date()
         self.updatedAt = Date()
 
-        // Spotify fields default to nil (optional integration)
-        self.spotifyPlaylistURI = nil
-        self.spotifyPlaylistName = nil
-        self.spotifyPlaylistImageURL = nil
+        self.musicLinkURL = nil
+        self.musicLinkWebURL = nil
+        self.musicLinkTitle = nil
+        self.musicLinkAuthorName = nil
+        self.musicLinkArtworkURL = nil
+        self.musicLinkProviderRawValue = nil
     }
 }
 
@@ -166,9 +253,30 @@ extension TherapeuticSession {
         self.moodAfter - self.moodBefore
     }
 
-    /// Whether this session has Spotify playlist attached
-    var hasSpotifyPlaylist: Bool {
-        self.spotifyPlaylistURI != nil && !self.spotifyPlaylistURI!.isEmpty
+    /// Whether this session has a stored playlist link
+    var hasMusicLink: Bool {
+        guard let url = self.musicLinkURL ?? self.musicLinkWebURL else { return false }
+        return !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var musicLinkProvider: MusicLinkProvider {
+        get {
+            guard let raw = self.musicLinkProviderRawValue else { return .unknown }
+            return MusicLinkProvider(rawValue: raw) ?? .unknown
+        }
+        set {
+            self.musicLinkProviderRawValue = newValue == .unknown ? nil : newValue.rawValue
+        }
+    }
+
+    var preferredOpenURL: URL? {
+        if let original = self.musicLinkURL, let url = URL(string: original) {
+            return url
+        }
+        if let web = self.musicLinkWebURL, let url = URL(string: web) {
+            return url
+        }
+        return nil
     }
 
     /// Validation for required fields and psychedelic treatment types
@@ -197,11 +305,14 @@ extension TherapeuticSession {
         self.updatedAt = Date()
     }
 
-    /// Clear all Spotify-related data (for disconnection)
-    func clearSpotifyData() {
-        self.spotifyPlaylistURI = nil
-        self.spotifyPlaylistName = nil
-        self.spotifyPlaylistImageURL = nil
+    /// Clear all music link metadata
+    func clearMusicLinkData() {
+        self.musicLinkURL = nil
+        self.musicLinkWebURL = nil
+        self.musicLinkTitle = nil
+        self.musicLinkAuthorName = nil
+        self.musicLinkArtworkURL = nil
+        self.musicLinkProviderRawValue = nil
         self.markAsUpdated()
     }
 }

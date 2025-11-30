@@ -15,15 +15,16 @@ struct TherapeuticSessionTests {
         #expect(session.administration == .oral) // Default value
         #expect(session.intention == "")
         #expect(session.environmentNotes == "")
-        #expect(session.musicNotes == "")
         #expect(session.moodBefore == 5)
         #expect(session.moodAfter == 5)
         #expect(session.reflections == "")
         #expect(session.status == .draft)
         #expect(session.reminderDate == nil)
-        #expect(session.spotifyPlaylistURI == nil)
-        #expect(session.spotifyPlaylistName == nil)
-        #expect(session.spotifyPlaylistImageURL == nil)
+        #expect(session.musicLinkURL == nil)
+        #expect(session.musicLinkWebURL == nil)
+        #expect(session.musicLinkTitle == nil)
+        #expect(session.musicLinkAuthorName == nil)
+        #expect(session.musicLinkArtworkURL == nil)
 
         // Dates should be recent (within 1 second)
         let now = Date()
@@ -42,7 +43,6 @@ struct TherapeuticSessionTests {
             administration: .oral,
             intention: "Healing trauma",
             environmentNotes: "Peaceful garden",
-            musicNotes: "Nature sounds",
             moodBefore: 3,
             moodAfter: 8,
             reflections: "Profound insights",
@@ -54,7 +54,6 @@ struct TherapeuticSessionTests {
         #expect(session.administration == .oral)
         #expect(session.intention == "Healing trauma")
         #expect(session.environmentNotes == "Peaceful garden")
-        #expect(session.musicNotes == "Nature sounds")
         #expect(session.moodBefore == 3)
         #expect(session.moodAfter == 8)
         #expect(session.reflections == "Profound insights")
@@ -89,17 +88,17 @@ struct TherapeuticSessionTests {
         #expect(sessionUnchanged.moodChange == 0)
     }
 
-    @Test("Spotify playlist detection") func testHasSpotifyPlaylist() async throws {
+    @Test("Music link detection") func testHasMusicLink() async throws {
         let sessionWithoutPlaylist = TherapeuticSession()
-        #expect(sessionWithoutPlaylist.hasSpotifyPlaylist == false)
+        #expect(sessionWithoutPlaylist.hasMusicLink == false)
 
         let sessionWithEmptyURI = TherapeuticSession()
-        sessionWithEmptyURI.spotifyPlaylistURI = ""
-        #expect(sessionWithEmptyURI.hasSpotifyPlaylist == false)
+        sessionWithEmptyURI.musicLinkURL = ""
+        #expect(sessionWithEmptyURI.hasMusicLink == false)
 
         let sessionWithPlaylist = TherapeuticSession()
-        sessionWithPlaylist.spotifyPlaylistURI = "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M"
-        #expect(sessionWithPlaylist.hasSpotifyPlaylist == true)
+        sessionWithPlaylist.musicLinkURL = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M"
+        #expect(sessionWithPlaylist.hasMusicLink == true)
     }
 
     // MARK: - Validation Tests
@@ -159,20 +158,26 @@ struct TherapeuticSessionTests {
         #expect(session.updatedAt > originalUpdatedAt)
     }
 
-    @Test("Clear Spotify data") func testClearSpotifyData() async throws {
+    @Test("Clear music link data") func testClearMusicLinkData() async throws {
         let session = TherapeuticSession()
-        session.spotifyPlaylistURI = "spotify:playlist:test"
-        session.spotifyPlaylistName = "Test Playlist"
-        session.spotifyPlaylistImageURL = "https://example.com/image.jpg"
+        session.musicLinkURL = "spotify:playlist:test"
+        session.musicLinkWebURL = "https://open.spotify.com/playlist/test"
+        session.musicLinkTitle = "Test Playlist"
+        session.musicLinkAuthorName = "Afterflow"
+        session.musicLinkArtworkURL = "https://example.com/image.jpg"
+        session.musicLinkProvider = .spotify
 
         let originalUpdatedAt = session.updatedAt
         try await Task.sleep(nanoseconds: 1_000_000) // 1ms
 
-        session.clearSpotifyData()
+        session.clearMusicLinkData()
 
-        #expect(session.spotifyPlaylistURI == nil)
-        #expect(session.spotifyPlaylistName == nil)
-        #expect(session.spotifyPlaylistImageURL == nil)
+        #expect(session.musicLinkURL == nil)
+        #expect(session.musicLinkWebURL == nil)
+        #expect(session.musicLinkTitle == nil)
+        #expect(session.musicLinkAuthorName == nil)
+        #expect(session.musicLinkArtworkURL == nil)
+        #expect(session.musicLinkProviderRawValue == nil)
         #expect(session.updatedAt > originalUpdatedAt)
     }
 
@@ -212,7 +217,6 @@ struct TherapeuticSessionTests {
             administration: .oral,
             intention: longText,
             environmentNotes: longText,
-            musicNotes: longText,
             reflections: longText
         )
 
@@ -220,7 +224,6 @@ struct TherapeuticSessionTests {
         #expect(session.administration == .oral)
         #expect(session.intention.count == 1000)
         #expect(session.environmentNotes.count == 1000)
-        #expect(session.musicNotes.count == 1000)
         #expect(session.reflections.count == 1000)
         #expect(session.isValid == true) // Should still be valid
     }
@@ -231,7 +234,6 @@ struct TherapeuticSessionTests {
             administration: .oral,
             intention: "Найти покой и мудрость 🕉️",
             environmentNotes: "Beautiful zen garden with 🌸 sakura trees",
-            musicNotes: "Tibetan singing bowls 🎵",
             reflections: "Felt deep connection to the universe ✨"
         )
 

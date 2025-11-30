@@ -1,0 +1,68 @@
+@testable import Afterflow
+import Foundation
+import Testing
+
+@MainActor
+struct MusicLinkMetadataServiceTests {
+    private final class MockSession: URLSessioning {
+        enum Step {
+            case response(Data, Int)
+            case error(Error)
+        }
+        private var steps: [Step]
+        init(steps: [Step]) { self.steps = steps }
+
+        func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+            guard !steps.isEmpty else { throw URLError(.badServerResponse) }
+            let step = steps.removeFirst()
+            switch step {
+            case let .response(data, statusCode):
+                let response = HTTPURLResponse(
+                    url: request.url ?? URL(string: "https://example.com")!,
+                    statusCode: statusCode,
+                    httpVersion: nil,
+                    headerFields: nil
+                )!
+                return (data, response)
+            case let .error(error):
+                throw error
+            }
+        }
+    }
+
+    @Test("Classifies Spotify deep link into canonical URL")
+    func classifyDeepLink() async throws {
+        let service = MusicLinkMetadataService()
+        let result = service.classify(urlString: "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M")
+        #expect(result?.provider == .spotify)
+        #expect(result?.canonicalURL.absoluteString == "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M")
+    }
+
+    @Test("Fetches Spotify oEmbed metadata")
+    func fetchSpotifyMetadata() async throws {
+        let payload = Data("""
+        {
+          "title": "Deep Focus",
+          "author_name": "Spotify",
+          "thumbnail_url": "https://i.scdn.co/image/test"
+        }
+        """.utf8)
+        let service = MusicLinkMetadataService(
+            urlSession: MockSession(steps: [.response(payload, 200)])
+        )
+        let metadata = try await service.fetchMetadata(for: "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M")
+        #expect(metadata.provider == .spotify)
+        #expect(metadata.title == "Deep Focus")
+        #expect(metadata.authorName == "Spotify")
+        #expect(metadata.thumbnailURL?.absoluteString == "https://i.scdn.co/image/test")
+    }
+
+    @Test("Unsupported provider falls back to link-only metadata")
+    func fallbackForUnsupportedProvider() async throws {
+        let service = MusicLinkMetadataService()
+        let metadata = try await service.fetchMetadata(for: "https://music.apple.com/us/playlist/calm/pl.u-123")
+        #expect(metadata.provider == .appleMusic)
+        #expect(metadata.title == nil)
+        #expect(metadata.thumbnailURL == nil)
+    }
+}

@@ -23,7 +23,7 @@ Central reference for all automation agents working in Afterflow. Load this docu
 | Copilot slash commands | `.github/copilot/slash-commands.md` |
 | Claude/SpecKit prompt pack | `.github/prompts/*.prompt.md` |
 | Repository constitution | `.specify/memory/constitution.md` |
-| Product specs & TODOs | `specs/001-core-session-logging/`, `specs/002-spotify-integration/`, `specs/003-data-export/` |
+| Product specs & TODOs | `specs/001-core-session-logging/`, `specs/002-music-links/`, `specs/003-data-export/` |
 
 ## Agent Profiles
 - **Codex CLI** – Use `ai/agents/ios_dev.md` plus the Feature/Bugfix workflows. Keep terminal/test commands aligned with `AGENTS.md` and mirror file structure when editing.
