@@ -14,7 +14,6 @@ struct TherapeuticSessionTests {
         #expect(session.treatmentType == .psilocybin) // Default value
         #expect(session.administration == .oral) // Default value
         #expect(session.intention == "")
-        #expect(session.environmentNotes == "")
         #expect(session.moodBefore == 5)
         #expect(session.moodAfter == 5)
         #expect(session.reflections == "")
@@ -42,7 +41,6 @@ struct TherapeuticSessionTests {
             treatmentType: .psilocybin,
             administration: .oral,
             intention: "Healing trauma",
-            environmentNotes: "Peaceful garden",
             moodBefore: 3,
             moodAfter: 8,
             reflections: "Profound insights",
@@ -53,7 +51,6 @@ struct TherapeuticSessionTests {
         #expect(session.treatmentType == .psilocybin)
         #expect(session.administration == .oral)
         #expect(session.intention == "Healing trauma")
-        #expect(session.environmentNotes == "Peaceful garden")
         #expect(session.moodBefore == 3)
         #expect(session.moodAfter == 8)
         #expect(session.reflections == "Profound insights")
@@ -216,14 +213,12 @@ struct TherapeuticSessionTests {
             treatmentType: .psilocybin, // Use valid psychedelic
             administration: .oral,
             intention: longText,
-            environmentNotes: longText,
             reflections: longText
         )
 
         #expect(session.treatmentType == .psilocybin)
         #expect(session.administration == .oral)
         #expect(session.intention.count == 1000)
-        #expect(session.environmentNotes.count == 1000)
         #expect(session.reflections.count == 1000)
         #expect(session.isValid == true) // Should still be valid
     }
@@ -233,7 +228,6 @@ struct TherapeuticSessionTests {
             treatmentType: .mdma,
             administration: .oral,
             intention: "Найти покой и мудрость 🕉️",
-            environmentNotes: "Beautiful zen garden with 🌸 sakura trees",
             reflections: "Felt deep connection to the universe ✨"
         )
 

@@ -15,7 +15,6 @@ final class SessionDetailViewModel {
 
     var reflectionText: String
     var administration: AdministrationMethod
-    var environmentNotes: String
     var moodBefore: Int
     var moodAfter: Int
     var isSaving = false
@@ -27,7 +26,6 @@ final class SessionDetailViewModel {
         self.persistence = persistence
         self.reflectionText = session.reflections
         self.administration = session.administration
-        self.environmentNotes = session.environmentNotes
         self.moodBefore = session.moodBefore
         self.moodAfter = session.moodAfter
     }
@@ -36,7 +34,6 @@ final class SessionDetailViewModel {
         let trimmedReflection = self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedReflection != self.session.reflections ||
             self.administration != self.session.administration ||
-            self.environmentNotes != self.session.environmentNotes ||
             self.moodBefore != self.session.moodBefore ||
             self.moodAfter != self.session.moodAfter
     }
@@ -50,7 +47,6 @@ final class SessionDetailViewModel {
         let trimmed = self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines)
         self.session.reflections = trimmed
         self.session.administration = self.administration
-        self.session.environmentNotes = self.environmentNotes
         self.session.moodBefore = self.moodBefore
         self.session.moodAfter = self.moodAfter
 

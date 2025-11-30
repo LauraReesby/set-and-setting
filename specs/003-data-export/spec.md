@@ -34,7 +34,7 @@ Users need a simple way to take their data with them (for backups, analysis, or 
 **As a user**, I want a readable PDF summary per session (or a multi‑session packet) to share with my clinician/coach.  
 **Acceptance**
 1. Neutral headings and reflective tone (no diagnoses).  
-2. Includes intentions, environment, playlist link title (if present), moods, reflections, and date/time.  
+2. Includes intentions, playlist link title (if present), moods, reflections, and date/time.  
 3. Optional cover page with total sessions included, and a brief privacy note.  
 4. Pagination, selectable text, and legible in light/dark print.
 

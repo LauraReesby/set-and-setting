@@ -166,9 +166,6 @@ final class TherapeuticSession {
 
     // MARK: - Environment & Setting
 
-    /// Description of the physical environment
-    var environmentNotes: String
-
     // MARK: - Mood Tracking
 
     /// Mood rating before session (1-10 scale)
@@ -212,7 +209,6 @@ final class TherapeuticSession {
         treatmentType: PsychedelicTreatmentType = .psilocybin,
         administration: AdministrationMethod = .oral,
         intention: String = "",
-        environmentNotes: String = "",
         moodBefore: Int = 5,
         moodAfter: Int = 5,
         reflections: String = "",
@@ -223,7 +219,6 @@ final class TherapeuticSession {
         self.treatmentTypeRawValue = treatmentType.rawValue
         self.administrationRawValue = administration.rawValue
         self.intention = intention
-        self.environmentNotes = environmentNotes
         self.moodBefore = moodBefore
         self.moodAfter = moodAfter
         self.reflections = reflections

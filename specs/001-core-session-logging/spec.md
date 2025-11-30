@@ -5,11 +5,11 @@
 **Owner:** Product + Engineering  
 
 ## Intent
-Enable users to privately log therapeutic sessions capturing *set (mindset)* and *setting (environment; playlist links handled by Feature 002)* while fully offline.  
+Enable users to privately log therapeutic sessions capturing *set (mindset)* while fully offline (playlist links handled separately in Feature 002).  
 Goal: fast, calming journaling flow in < 60 s with full user data control.
 
 ## Problem
-Users of psychedelic-assisted therapy lack a safe, private way to record intentions, environment, and reflections.  
+Users of psychedelic-assisted therapy lack a safe, private way to record intentions and reflections.  
 Existing solutions require network access or expose data.
 
 ## Success Criteria
@@ -42,15 +42,7 @@ Existing solutions require network access or expose data.
 5. Draft is only persisted once the “Needs Reflection” state begins (after mood + intention complete).  
 6. After saving the draft, prompt for reminder: “Would you like a reminder to add reflections later?” with the four options above.
 
-### US2 – Add Environment Context
-**As a user** I want to capture my environment details to recall the setting.  
-**Acceptance:**
-1. Free-text environment notes.  
-2. Tone-checked helper copy → reflective guidance.  
-3. Long inputs remain responsive.  
-4. Fields visually grouped as “Later” so users understand they unlock after the draft phase.  
-
-### US3 – Rate Session Mood
+### US2 – Rate Session Mood
 **As a user** I want to rate mood before / after the session.  
 **Acceptance:**
 1. Intuitive slider 1–10 with emoji feedback.  
@@ -58,15 +50,15 @@ Existing solutions require network access or expose data.
 3. Dynamic Type XL+ layout passes A11y snapshot tests.  
 4. Before-mood completion is required to transition from Draft to Needs Reflection.  
 
-### US4 – Post-Session Reflections
+### US3 – Post-Session Reflections
 **As a user** I want to add reflections and integration notes later.  
 **Acceptance:**
 1. Empty-state helper copy encourages reflective writing.  
-2. Once a session is in “Needs Reflection,” any changes (reflections, environment, moodAfter) auto-save to SwiftData; persistence errors surface non-blocking banner + retry.  
+2. Once a session is in “Needs Reflection,” any changes (reflections, moodAfter) auto-save to SwiftData; persistence errors surface non-blocking banner + retry.  
 3. Reminder selections fire local notifications until dismissed by saving reflections.  
 4. Sessions in “Needs Reflection” state display a banner in lists/detail and can be tapped to resume; once reflections saved, reminder clears and status flips to Complete.
 
-### US5 – View & Manage History
+### US4 – View & Manage History
 **As a user** I want to browse all sessions chronologically and manage them.  
 **Acceptance:**
 1. List displays date, mood indicator, treatment type, **and status badge (Needs Reflection)**.  
@@ -91,7 +83,6 @@ Existing solutions require network access or expose data.
 | FR-002 | Validate required fields with inline guidance. |
 | FR-003 | Auto-save drafts + recover after crash/close. |
 | FR-003a | Drafts remain in volatile storage until the “Needs Reflection” threshold is passed; persisted sessions track status. |
-| FR-004 | Support environment text field. |
 | FR-005 | Mood rating sliders (before/after). |
 | FR-006 | Reflection text area + auto-save (live once “Needs Reflection”), with reminder scheduling. |
 | FR-007 | Chronological session list + detail view (status-aware). |
@@ -107,7 +98,7 @@ Existing solutions require network access or expose data.
 | ID | Description |
 |----|--------------|
 | TR-001 | SwiftUI 5.9 + SwiftData on iOS ≥ 17.6 (tested on 17.6+). |
-| TR-002 | SwiftData entity `TherapeuticSession` fields:<br> `id (UUID)`, `date (Date)`, `treatmentType (Enum)`, `dose (String?)`, `intention (String?)`, `environment (String?)`, `beforeMood (Int?)`, `afterMood (Int?)`, `reflection (String?)`, `createdAt (Date)`, `updatedAt (Date)` |
+| TR-002 | SwiftData entity `TherapeuticSession` fields:<br> `id (UUID)`, `date (Date)`, `treatmentType (Enum)`, `dose (String?)`, `intention (String?)`, `beforeMood (Int?)`, `afterMood (Int?)`, `reflection (String?)`, `createdAt (Date)`, `updatedAt (Date)` |
 | TR-003 | Offline SQLite storage; optional CloudKit sync later. |
 | TR-004 | SwiftData queries in ViewModels only for derived state. |
 | TR-005 | Biometric unlock (optional). |

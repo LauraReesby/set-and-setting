@@ -54,11 +54,6 @@ struct SessionDetailView: View {
                     }
                 }
 
-                TextField("Environment", text: Binding(
-                    get: { self.viewModel?.environmentNotes ?? "" },
-                    set: { self.viewModel?.environmentNotes = $0 }
-                ), axis: .vertical)
-
                 MoodRatingView(
                     value: Binding(
                         get: { self.viewModel?.moodBefore ?? self.session.moodBefore },

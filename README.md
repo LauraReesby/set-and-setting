@@ -4,7 +4,7 @@ A private, offline-first iOS app for logging psychedelic-assisted therapy sessio
 
 ## Overview
 
-Afterflow is a therapeutic session logging app designed for individuals undergoing psychedelic-assisted therapy. It provides a safe, private space to record intentions, environment details, mood changes, and post-session reflections—all while maintaining complete privacy and working entirely offline.
+Afterflow is a therapeutic session logging app designed for individuals undergoing psychedelic-assisted therapy. It provides a safe, private space to record intentions, mood changes, and post-session reflections—all while maintaining complete privacy and working entirely offline.
 
 ### Key Features
 
@@ -13,7 +13,7 @@ Afterflow is a therapeutic session logging app designed for individuals undergoi
 - **🌐 Offline-First**: Core functionality works without internet connection
 - **🎵 Music Links**: Planned playlist URL previews (Spotify/YouTube) with graceful fallbacks for other services
 - **📊 Mood Tracking**: Before and after session mood ratings with visual feedback
-- **📝 Comprehensive Logging**: Capture treatment type, environment, intentions, and reflections (editable later in Session Detail)
+- **📝 Comprehensive Logging**: Capture treatment type, intentions, and reflections (editable later in Session Detail)
 - **♿ Accessibility**: VoiceOver support and Dynamic Type compliance
 - **📚 History Filters + Undo**: Sort/search the session list, filter by treatment type, and undo deletes for up to 10 seconds
 - **⏰ Reflection Reminders**: Optional reminders to add post session mood and reflections

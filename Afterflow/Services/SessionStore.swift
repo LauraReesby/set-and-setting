@@ -139,7 +139,6 @@ private struct SessionDraft: Codable {
     let treatmentType: String
     let administration: String
     let intention: String
-    let environmentNotes: String
     let moodBefore: Int
     let moodAfter: Int
     let reflections: String
@@ -156,7 +155,6 @@ private struct SessionDraft: Codable {
         self.treatmentType = session.treatmentTypeRawValue
         self.administration = session.administrationRawValue
         self.intention = session.intention
-        self.environmentNotes = session.environmentNotes
         self.moodBefore = session.moodBefore
         self.moodAfter = session.moodAfter
         self.reflections = session.reflections
@@ -175,7 +173,6 @@ private struct SessionDraft: Codable {
             treatmentType: PsychedelicTreatmentType(rawValue: treatmentType) ?? .psilocybin,
             administration: AdministrationMethod(rawValue: administration) ?? .oral,
             intention: intention,
-            environmentNotes: environmentNotes,
             moodBefore: moodBefore,
             moodAfter: moodAfter,
             reflections: reflections,

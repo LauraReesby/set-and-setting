@@ -15,7 +15,6 @@ enum SessionFixtureFactory {
                 treatmentType: treatment,
                 administration: .oral,
                 intention: "Fixture Session \(index)",
-                environmentNotes: "Fixture environment \(index)",
                 moodBefore: moodBefore,
                 moodAfter: moodAfter,
                 reflections: index.isMultiple(of: 2) ? "Reflection \(index)" : ""

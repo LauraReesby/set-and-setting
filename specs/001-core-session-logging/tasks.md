@@ -16,12 +16,12 @@
 - [x] T010a [US1] Implement Draft vs. Needs Reflection field grouping + inline status indicator.  
 - [x] T010b [US1] ViewModel-only draft persistence + unit tests ensuring SwiftData writes occur after before-mood/intention complete.  
 
-## Phase 3 – Environment & Music
-- [x] T011 [US2] Add environment + music fields to model.  
-- [x] T012 [US2] EnvironmentInputView + Music Input subviews.  
-- [x] T013 [US2] Tone-checked helper copy.  
-- [x] T014 [US2] Persistence tests + UI tests (long text handling).  
-- [x] T015 [US2] Constitutional QA verification: accessibility, performance profiling, privacy compliance.  
+## Phase 3 – (Removed)  
+- [x] T011 [US2] Retired in favor of Feature 002 playlist links; environment field removed.  
+- [x] T012 [US2] (N/A)  
+- [x] T013 [US2] (N/A)  
+- [x] T014 [US2] (N/A)  
+- [x] T015 [US2] (N/A)  
 
 ## Phase 4 – Mood Ratings
 - [x] T016 [US3] Add before/after mood fields.  
