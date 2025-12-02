@@ -455,8 +455,7 @@ extension SessionFormView {
             return metadata.provider.displayName
         }
         if self.hasExistingSessionMusicLink, let raw = self.editingSession?.musicLinkProviderRawValue,
-           let provider = MusicLinkProvider(rawValue: raw)
-        {
+           let provider = MusicLinkProvider(rawValue: raw) {
             return provider.displayName
         }
         if let classification = self.metadataService.classify(urlString: self.musicLinkInput) {
@@ -483,8 +482,7 @@ extension SessionFormView {
         #if canImport(UIKit)
             if let clipboard = UIPasteboard.general.string?
                 .trimmingCharacters(in: .whitespacesAndNewlines),
-                !clipboard.isEmpty
-            {
+                !clipboard.isEmpty {
                 self.musicLinkInput = clipboard
             } else {
                 self.musicLinkError = "Clipboard is empty."
@@ -573,11 +571,10 @@ extension SessionFormView {
 
     static func metadata(from session: TherapeuticSession) -> MusicLinkMetadata? {
         guard session.hasMusicLink else { return nil }
-        guard
-            let originalString = session.musicLinkURL ?? session.musicLinkWebURL,
-            let canonicalString = session.musicLinkWebURL ?? session.musicLinkURL,
-            let original = URL(string: originalString),
-            let canonical = URL(string: canonicalString)
+        guard let originalString = session.musicLinkURL ?? session.musicLinkWebURL,
+              let canonicalString = session.musicLinkWebURL ?? session.musicLinkURL,
+              let original = URL(string: originalString),
+              let canonical = URL(string: canonicalString)
         else { return nil }
         return MusicLinkMetadata(
             provider: session.musicLinkProvider,

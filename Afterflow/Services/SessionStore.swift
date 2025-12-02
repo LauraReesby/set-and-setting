@@ -97,9 +97,8 @@ final class SessionStore {
     }
 
     func recoverDraft() -> TherapeuticSession? {
-        guard
-            let timestamp = draftDefaults.object(forKey: draftTimestampKey) as? Date,
-            let data = draftDefaults.data(forKey: draftPayloadKey)
+        guard let timestamp = draftDefaults.object(forKey: draftTimestampKey) as? Date,
+              let data = draftDefaults.data(forKey: draftPayloadKey)
         else { return nil }
 
         // Only keep drafts for 24 hours

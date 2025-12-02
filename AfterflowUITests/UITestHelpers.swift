@@ -98,8 +98,7 @@ extension XCUIElement {
             // Check if frame is valid (not negative, not NaN, not infinite)
             if frame.width > 0, frame.height > 0,
                frame.width.isFinite, frame.height.isFinite,
-               frame.origin.x.isFinite, frame.origin.y.isFinite
-            {
+               frame.origin.x.isFinite, frame.origin.y.isFinite {
                 let center = frame.integral.center
                 let coord = XCUIApplication().coordinate(withNormalizedOffset: .zero)
                     .withOffset(CGVector(dx: center.x, dy: center.y))
