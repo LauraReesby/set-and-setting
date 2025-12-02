@@ -63,6 +63,7 @@ struct MusicLinkMetadataServiceTests {
         #expect(metadata.title == nil)
         #expect(metadata.thumbnailURL == nil)
     }
+
     @Test("Classifies YouTube short link into canonical URL") func classifyYouTubeShortLink() async throws {
         let service = MusicLinkMetadataService()
         let result = service.classify(urlString: "https://youtu.be/abcd1234")
@@ -88,7 +89,8 @@ struct MusicLinkMetadataServiceTests {
         #expect(metadata.thumbnailURL?.absoluteString == "https://img.youtube.com/vi/track/default.jpg")
     }
 
-    @Test("Network failures fall back to minimal metadata instead of throwing") func requestFailureFallsBack() async throws {
+    @Test("Network failures fall back to minimal metadata instead of throwing") func requestFailureFallsBack(
+    ) async throws {
         let service = MusicLinkMetadataService(
             urlSession: MockSession(steps: [.error(URLError(.timedOut))])
         )
@@ -98,7 +100,8 @@ struct MusicLinkMetadataServiceTests {
         #expect(metadata.thumbnailURL == nil)
     }
 
-    @Test("Successful fetches cache results to avoid duplicate requests") func cachingPreventsDuplicateRequests() async throws {
+    @Test("Successful fetches cache results to avoid duplicate requests") func cachingPreventsDuplicateRequests(
+    ) async throws {
         let payload = Data("""
         {
           "title": "Deep Focus",

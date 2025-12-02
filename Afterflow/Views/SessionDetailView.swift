@@ -2,6 +2,9 @@
 
 import SwiftData
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SessionDetailView: View {
     @Environment(SessionStore.self) private var sessionStore
@@ -11,6 +14,7 @@ struct SessionDetailView: View {
     let session: TherapeuticSession
 
     @State private var showingEdit = false
+    @State private var linkErrorMessage: String?
 
     var body: some View {
         List {
@@ -42,18 +46,26 @@ struct SessionDetailView: View {
 
             Section("Music") {
                 if self.session.hasMusicLink {
-                    MusicLinkSummaryCard(session: self.session)
-                    if let url = session.preferredOpenURL {
-                        Button {
-                            self.openURL(url)
-                        } label: {
-                            Label("Open link", systemImage: "arrow.up.right.square")
-                                .font(.subheadline)
-                        }
-                    }
+                    MusicLinkDetailCard(
+                        title: self.session.musicLinkTitle ?? "Playlist link",
+                        provider: self.session.musicLinkProvider.displayName,
+                        author: self.session.musicLinkAuthorName,
+                        urlDisplay: self.session.musicLinkWebURL ?? self.session.musicLinkURL ?? "",
+                        artworkURL: self.session.musicLinkArtworkURL.flatMap(URL.init(string:)),
+                        openAction: self.openMusicLink
+                    )
                 } else {
-                    Text("No playlist attached")
-                        .foregroundStyle(.secondary)
+                    Button {
+                        self.showingEdit = true
+                    } label: {
+                        Label("Attach music link", systemImage: "link.badge.plus")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("attachMusicLinkFromDetail")
+                    .padding(.vertical, 2)
                 }
             }
 
@@ -87,6 +99,17 @@ struct SessionDetailView: View {
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(16)
             .toolbarBackground(.visible, for: .automatic)
+        }
+        .alert(
+            "Music Link",
+            isPresented: Binding(
+                get: { self.linkErrorMessage != nil },
+                set: { if !$0 { self.linkErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(self.linkErrorMessage ?? "")
         }
     }
 
@@ -134,6 +157,8 @@ struct SessionDetailView: View {
                    let reminderLabel = self.session.reminderDisplayText
                 {
                     ReminderPill(text: reminderLabel)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 2)
                         .accessibilityIdentifier("detailReminderLabel")
                 }
             }
@@ -218,15 +243,15 @@ private struct StatusPill: View {
     let status: SessionLifecycleStatus
 
     var body: some View {
-        HStack(spacing: 2) {
-            Image(systemName: status.symbolName)
+        HStack(spacing: 1) {
+            Image(systemName: self.status.symbolName)
             Text(self.labelText)
         }
         .font(.caption)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(status.accentColor.opacity(0.15))
-        .foregroundStyle(status.accentColor)
+        .background(self.status.accentColor.opacity(0.15))
+        .foregroundStyle(self.status.accentColor)
         .clipShape(Capsule())
     }
 
@@ -245,7 +270,7 @@ private struct MoodDeltaPill: View {
     var body: some View {
         HStack(spacing: 2) {
             Image(systemName: self.iconName)
-            Text("Mood \(before) → \(after)")
+            Text("Mood \(self.before) → \(self.after)")
         }
         .font(.caption)
         .padding(.horizontal, 10)
@@ -256,11 +281,11 @@ private struct MoodDeltaPill: View {
     }
 
     private var iconName: String {
-        after >= before ? "arrow.up.right" : "arrow.down.right"
+        self.after >= self.before ? "arrow.up.right" : "arrow.down"
     }
 
     private var tintColor: Color {
-        after >= before ? .blue : .purple
+        self.after >= self.before ? .blue : Color.purple.opacity(0.9)
     }
 }
 
@@ -268,9 +293,9 @@ private struct MoodBeforePill: View {
     let value: Int
 
     var body: some View {
-        HStack(spacing: 2) {
+        HStack(spacing: 1) {
             Image(systemName: "face.smiling")
-            Text("Mood \(value)")
+            Text("Mood \(self.value)")
         }
         .font(.caption)
         .padding(.horizontal, 10)
@@ -285,16 +310,141 @@ private struct ReminderPill: View {
     let text: String
 
     var body: some View {
-        HStack(spacing: 2) {
+        let tint = Color(.systemRed)
+        return HStack(spacing: 1) {
             Image(systemName: "bell")
-            Text(text)
+            Text(self.text)
         }
         .font(.caption)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.pink.opacity(0.18))
-        .foregroundStyle(Color.pink)
+        .background(tint.opacity(0.15))
+        .foregroundStyle(tint)
         .clipShape(Capsule())
+    }
+}
+
+private struct MusicLinkDetailCard: View {
+    let title: String
+    let provider: String
+    let author: String?
+    let urlDisplay: String
+    let artworkURL: URL?
+    let openAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button(action: self.openAction) {
+                HStack(spacing: 12) {
+                    self.artworkView
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(self.title)
+                            .font(.headline)
+                            .lineLimit(2)
+
+                        HStack(spacing: 6) {
+                            Text(self.providerText)
+                            if let author, !author.isEmpty {
+                                Text("•")
+                                Text(author)
+                            }
+                        }
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                        if !self.urlDisplay.isEmpty {
+                            Text(self.urlDisplay)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var providerText: String {
+        self.provider.isEmpty ? "Music link" : self.provider
+    }
+
+    @ViewBuilder
+    private var artworkView: some View {
+        if let artworkURL {
+            AsyncImage(url: artworkURL) { phase in
+                switch phase {
+                case let .success(image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    ZStack {
+                        Color.gray.opacity(0.15)
+                        ProgressView()
+                    }
+                case .failure:
+                    fallbackArtwork
+                @unknown default:
+                    fallbackArtwork
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        } else {
+            fallbackArtwork
+        }
+    }
+
+    private var fallbackArtwork: some View {
+        ZStack {
+            Color.gray.opacity(0.12)
+            Image(systemName: "music.note.list")
+                .imageScale(.medium)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 64, height: 64)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+private extension String {
+    var trimmed: String {
+        self.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+extension SessionDetailView {
+    private func openMusicLink() {
+        var seen = Set<String>()
+        let candidates = [self.session.musicLinkURL, self.session.musicLinkWebURL]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+
+        for candidate in candidates {
+            guard let url = URL(string: candidate) else { continue }
+            self.openURL(url)
+            return
+        }
+
+        if seen.isEmpty {
+            self.linkErrorMessage = "Playlist link is missing."
+        } else {
+            self.linkErrorMessage = "Unable to open playlist link."
+        }
     }
 }
 

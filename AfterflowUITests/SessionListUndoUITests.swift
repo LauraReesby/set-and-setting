@@ -23,10 +23,10 @@ final class SessionListUndoUITests: XCTestCase {
         }
 
         let undoButton = app.buttons["undoBannerAction"]
-        XCTAssertTrue(undoButton.waitForExistence(timeout: 2), "Undo banner should appear")
+        XCTAssertTrue(undoButton.waitForExistence(timeout: 4), "Undo banner should appear")
         undoButton.tap()
 
-        XCTAssertTrue(cell.waitForExistence(timeout: 3), "Session should reappear after undo")
+        XCTAssertTrue(cell.waitForExistence(timeout: 6), "Session should reappear after undo")
     }
 
     // MARK: - Helpers

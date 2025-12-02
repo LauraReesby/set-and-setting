@@ -2,6 +2,9 @@
 
 import SwiftData
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct SessionFormView: View {
     private enum Mode {
@@ -42,6 +45,8 @@ struct SessionFormView: View {
     @State private var isFetchingMusicLink = false
     @State private var musicLinkError: String?
     @State private var didClearMusicLink = false
+    @State private var pendingMetadataRequest: UUID?
+    @State private var metadataFetchTask: Task<Void, Never>?
 
     // MARK: - Focus Management
 
@@ -84,10 +89,11 @@ struct SessionFormView: View {
             _moodAfter = State(initialValue: session.moodAfter)
             _reflectionText = State(initialValue: session.reflections)
             _musicLinkInput = State(initialValue: session.musicLinkWebURL ?? session.musicLinkURL ?? "")
-            _musicLinkMetadata = State(initialValue: nil)
-            _musicLinkError = State(initialValue: nil)
+            _musicLinkMetadata = State(initialValue: SessionFormView.metadata(from: session))
             _isFetchingMusicLink = State(initialValue: false)
+            _musicLinkError = State(initialValue: nil)
             _didClearMusicLink = State(initialValue: false)
+            _pendingMetadataRequest = State(initialValue: nil)
         } else {
             self.mode = .create
             _sessionDate = State(initialValue: Date())
@@ -99,9 +105,10 @@ struct SessionFormView: View {
             _reflectionText = State(initialValue: "")
             _musicLinkInput = State(initialValue: "")
             _musicLinkMetadata = State(initialValue: nil)
-            _musicLinkError = State(initialValue: nil)
             _isFetchingMusicLink = State(initialValue: false)
+            _musicLinkError = State(initialValue: nil)
             _didClearMusicLink = State(initialValue: false)
+            _pendingMetadataRequest = State(initialValue: nil)
         }
     }
 
@@ -136,9 +143,11 @@ struct SessionFormView: View {
         self.mode.isEditing ? "Done" : "Save"
     }
 
-    private var showStickyFooter: Bool { !self.mode.isEditing }
-
     private var editingSession: TherapeuticSession? { self.mode.session }
+
+    private var trimmedMusicLinkInput: String {
+        self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     private var hasExistingSessionMusicLink: Bool {
         guard let session = self.editingSession else { return false }
@@ -146,7 +155,7 @@ struct SessionFormView: View {
     }
 
     private var hasAnyMusicLink: Bool {
-        self.musicLinkMetadata != nil || self.hasExistingSessionMusicLink
+        self.musicLinkMetadata != nil || self.hasExistingSessionMusicLink || !self.trimmedMusicLinkInput.isEmpty
     }
 
     private var currentMusicProviderLabel: String? {
@@ -162,6 +171,10 @@ struct SessionFormView: View {
             return classification.provider.displayName
         }
         return nil
+    }
+
+    private var shouldShowMusicLinkHelper: Bool {
+        self.trimmedMusicLinkInput.isEmpty && self.musicLinkMetadata == nil && !self.hasExistingSessionMusicLink
     }
 
     private var statusBanner: some View {
@@ -227,6 +240,9 @@ struct SessionFormView: View {
                     .frame(minHeight: 140)
                     .focused(self.$focusedField, equals: .reflection)
                     .accessibilityIdentifier("reflectionEditor")
+                Text("Capture integration notes, insights, or any memories you'd like to revisit later.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
         } else {
             Section("Reflection") {
@@ -323,6 +339,21 @@ struct SessionFormView: View {
 
             Section("Music") {
                 VStack(alignment: .leading, spacing: 8) {
+                    if self.shouldShowMusicLinkHelper {
+                        Text("Paste a link from Spotify, YouTube, or SoundCloud.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+#if canImport(UIKit)
+                        Button {
+                            self.pasteMusicLinkFromClipboard()
+                        } label: {
+                            Label("Paste from clipboard", systemImage: "doc.on.clipboard")
+                        }
+                        .buttonStyle(.bordered)
+#endif
+                    }
+
                     HStack(alignment: .center, spacing: 8) {
                         TextField(
                             "Playlist URL",
@@ -332,15 +363,15 @@ struct SessionFormView: View {
                         .disableAutocorrection(true)
                         .keyboardType(.URL)
                         .accessibilityIdentifier("musicLinkField")
+                        .onChange(of: self.musicLinkInput) { _, _ in
+                            self.handleMusicLinkInputChange()
+                        }
+
                         if self.isFetchingMusicLink {
                             ProgressView()
                                 .progressViewStyle(.circular)
                         }
-                        Button("Attach") {
-                            self.attachMusicLink()
-                        }
-                        .accessibilityIdentifier("attachMusicLinkButton")
-                        .disabled(self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || self.isFetchingMusicLink)
+
                     }
 
                     if let providerLabel = self.currentMusicProviderLabel {
@@ -359,6 +390,8 @@ struct SessionFormView: View {
                         MusicLinkMetadataPreview(metadata: metadata)
                     } else if self.hasExistingSessionMusicLink, let session = self.editingSession {
                         MusicLinkSummaryCard(session: session)
+                    } else if !self.trimmedMusicLinkInput.isEmpty {
+                        MusicLinkRawPreview(urlString: self.trimmedMusicLinkInput)
                     }
 
                     if self.hasAnyMusicLink {
@@ -399,22 +432,6 @@ struct SessionFormView: View {
         .disabled(self.isLoading)
         .scrollContentBackground(.hidden)
         .background(Color(uiColor: .systemGroupedBackground))
-        .safeAreaInset(edge: .bottom) {
-            if self.showStickyFooter {
-                VStack(alignment: .leading, spacing: 4) {
-                    Button(action: self.saveSession) {
-                        Text("Save Draft")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("saveDraftButton")
-                }
-                .padding()
-                .background(.ultraThinMaterial)
-                .overlay(Divider(), alignment: .top)
-            }
-        }
         .scrollDismissesKeyboard(.immediately)
         .alert("Error", isPresented: self.$showError) {
             Button("OK") {}
@@ -582,9 +599,11 @@ struct SessionFormView: View {
         self.moodBefore = draft.moodBefore
         self.moodAfter = draft.moodAfter
         self.musicLinkInput = draft.musicLinkWebURL ?? draft.musicLinkURL ?? ""
-        self.musicLinkMetadata = self.metadata(from: draft)
-        self.didClearMusicLink = false
+        self.musicLinkMetadata = SessionFormView.metadata(from: draft)
         self.musicLinkError = nil
+        self.didClearMusicLink = false
+        self.isFetchingMusicLink = false
+        self.pendingMetadataRequest = nil
     }
 
     private func scheduleDraftSave() {
@@ -632,40 +651,69 @@ struct SessionFormView: View {
         }
     }
 
-    private func attachMusicLink() {
-        let trimmed = self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            self.musicLinkMetadata = nil
-            self.musicLinkError = nil
-            return
-        }
-        self.isFetchingMusicLink = true
-        self.musicLinkError = nil
-
-        Task {
-            do {
-                let metadata = try await self.metadataService.fetchMetadata(for: trimmed)
-                await MainActor.run {
-                    self.musicLinkMetadata = metadata
-                    self.didClearMusicLink = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.musicLinkError = "Couldn’t attach link. Please check the URL."
-                    self.musicLinkMetadata = nil
-                }
-            }
-            await MainActor.run {
-                self.isFetchingMusicLink = false
-            }
-        }
-    }
-
     private func removeMusicLink() {
         self.musicLinkInput = ""
         self.musicLinkMetadata = nil
         self.didClearMusicLink = true
         self.musicLinkError = nil
+        self.isFetchingMusicLink = false
+        self.pendingMetadataRequest = nil
+        self.metadataFetchTask?.cancel()
+    }
+
+    private func pasteMusicLinkFromClipboard() {
+        #if canImport(UIKit)
+        if let clipboard = UIPasteboard.general.string?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !clipboard.isEmpty
+        {
+            self.musicLinkInput = clipboard
+        } else {
+            self.musicLinkError = "Clipboard is empty."
+        }
+        #endif
+    }
+
+    private func handleMusicLinkInputChange() {
+        let trimmed = self.trimmedMusicLinkInput
+        self.metadataFetchTask?.cancel()
+        if trimmed.isEmpty {
+            self.isFetchingMusicLink = false
+            self.musicLinkMetadata = nil
+            self.musicLinkError = nil
+            self.didClearMusicLink = false
+            self.pendingMetadataRequest = nil
+            return
+        }
+
+        self.isFetchingMusicLink = true
+        self.musicLinkError = nil
+        let requestID = UUID()
+        self.pendingMetadataRequest = requestID
+
+        self.metadataFetchTask = Task {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            do {
+                let metadata = try await self.metadataService.fetchMetadata(for: trimmed)
+                try Task.checkCancellation()
+                await MainActor.run {
+                    guard self.pendingMetadataRequest == requestID else { return }
+                    self.musicLinkMetadata = metadata
+                    self.didClearMusicLink = false
+                    self.isFetchingMusicLink = false
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                await MainActor.run {
+                    guard self.pendingMetadataRequest == requestID else { return }
+                    self.musicLinkError = "Couldn’t attach link. Please check the URL."
+                    self.musicLinkMetadata = nil
+                    self.isFetchingMusicLink = false
+                }
+            }
+        }
     }
 
     private func applyMusicLink(to session: TherapeuticSession) {
@@ -677,7 +725,7 @@ struct SessionFormView: View {
             self.assign(metadata, to: session)
             return
         }
-        let trimmed = self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = self.trimmedMusicLinkInput
         guard !trimmed.isEmpty else { return }
 
         if let classification = self.metadataService.classify(urlString: trimmed) {
@@ -696,7 +744,6 @@ struct SessionFormView: View {
             session.musicLinkProvider = .unknown
         }
     }
-
     private func assign(_ metadata: MusicLinkMetadata, to session: TherapeuticSession) {
         session.musicLinkURL = metadata.originalURL.absoluteString
         session.musicLinkWebURL = metadata.canonicalURL.absoluteString
@@ -706,7 +753,7 @@ struct SessionFormView: View {
         session.musicLinkProvider = metadata.provider
     }
 
-    private func metadata(from session: TherapeuticSession) -> MusicLinkMetadata? {
+    private static func metadata(from session: TherapeuticSession) -> MusicLinkMetadata? {
         guard session.hasMusicLink else { return nil }
         guard
             let originalString = session.musicLinkURL ?? session.musicLinkWebURL,
@@ -723,6 +770,7 @@ struct SessionFormView: View {
             thumbnailURL: session.musicLinkArtworkURL.flatMap(URL.init(string:))
         )
     }
+
 }
 
 #Preview {

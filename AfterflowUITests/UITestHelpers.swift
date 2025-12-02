@@ -21,19 +21,25 @@ extension XCUIApplication {
 
         while Date() < deadline {
             if let element = locateElement() {
-                if !element.isHittable {
-                    for container in self.scrollContainers {
-                        container.scrollTo(element: element)
-                        if element.isHittable { break }
-                    }
+                if element.isHittable {
+                    return element
                 }
-                return element
+
+                for container in self.scrollContainers {
+                    container.scrollTo(element: element)
+                    if element.isHittable { break }
+                }
+
+                if element.isHittable {
+                    return element
+                }
             }
 
             for container in self.scrollContainers {
                 container.swipeUp()
                 RunLoop.current.run(until: Date().addingTimeInterval(0.05))
             }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
         }
         return nil
     }

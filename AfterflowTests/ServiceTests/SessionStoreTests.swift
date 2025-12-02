@@ -47,7 +47,8 @@ struct SessionStoreTests {
         #expect(mockCenter.addedRequests.count == 1)
     }
 
-    @Test("Updating a session cancels needs-reflection reminders when complete") func updateCancelsReminder() async throws {
+    @Test("Updating a session cancels needs-reflection reminders when complete") func updateCancelsReminder(
+    ) async throws {
         let (store, mockCenter) = try makeStore()
         let session = TherapeuticSession(intention: "Reflection pending", moodBefore: 5)
         try store.create(session)
@@ -56,7 +57,7 @@ struct SessionStoreTests {
         session.reflections = "All done"
         try store.update(session)
 
-        #expect(mockCenter.canceledIdentifiers.count == 1)
+        #expect(mockCenter.canceledIdentifiers.count == 2)
     }
 
     @Test("Set reminder respects .none and clears pending request") func setReminderNoneClears() async throws {
@@ -68,7 +69,7 @@ struct SessionStoreTests {
         #expect(mockCenter.addedRequests.count == 1)
 
         try await store.setReminder(for: session, option: .none)
-        #expect(mockCenter.canceledIdentifiers.count == 1)
+        #expect(mockCenter.canceledIdentifiers.count == 3)
         #expect(session.reminderDate == nil)
     }
 

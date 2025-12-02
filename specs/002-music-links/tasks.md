@@ -16,8 +16,8 @@ _Status reset 2025‑11‑29: pivoted from Spotify-only OAuth to general playlis
 - [x] T209 [US1] XCUITests for adding/removing playlist links on the form.  
 
 ## Phase 3 – Session Detail UX
-- [ ] T210 [US2] Build `MusicLinkCardView` showing title, provider icon, thumbnail (if available), and fallback copy.  
-- [ ] T211 [US2] Add “Open playlist” deep link with scheme-aware fallback + remove action on SessionDetailView.  
+- [x] T210 [US2] Build `MusicLinkCardView` showing title, provider icon, thumbnail (if available), and fallback copy.  
+- [x] T211 [US2] Add “Open playlist” deep link with scheme-aware fallback + remove action on SessionDetailView.  
 - [ ] T212 [US2] UI/VoiceOver polish + snapshot/UI tests for the card states (Tier‑1 preview vs link-only).  
 
 ## Phase 4 – Extended Providers

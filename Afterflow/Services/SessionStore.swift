@@ -40,13 +40,13 @@ final class SessionStore {
     func create(_ session: TherapeuticSession) throws {
         self.modelContext.insert(session)
         try self.saveAndRefresh()
-        Task { await self.scheduleReminderIfNeeded(for: session) }
+        self.scheduleReminderIfNeeded(for: session)
     }
 
     func update(_ session: TherapeuticSession) throws {
         session.markAsUpdated()
         try self.saveAndRefresh()
-        Task { await self.scheduleReminderIfNeeded(for: session) }
+        self.scheduleReminderIfNeeded(for: session)
     }
 
     func delete(_ session: TherapeuticSession) throws {
@@ -72,7 +72,7 @@ final class SessionStore {
         self.reload()
     }
 
-    private func scheduleReminderIfNeeded(for session: TherapeuticSession) async {
+    private func scheduleReminderIfNeeded(for session: TherapeuticSession) {
         switch session.status {
         case .needsReflection:
             if session.reminderDate == nil {

@@ -23,7 +23,7 @@ struct ContentView: View {
                                 .font(.headline)
                             if session.status == .needsReflection {
                                 HStack(spacing: 8) {
-                                    HStack(spacing: 4) {
+                                    HStack(spacing: 2) {
                                         Image(systemName: "bell.badge")
                                         Text("Reflect")
                                     }
@@ -31,7 +31,7 @@ struct ContentView: View {
                                     .foregroundColor(.orange)
 
                                     if let reminderLabel = session.reminderRelativeDescription {
-                                        HStack(spacing: 4) {
+                                        HStack(spacing: 2) {
                                             Image(systemName: "bell")
                                             Text(reminderLabel)
                                         }
@@ -41,7 +41,7 @@ struct ContentView: View {
                                     }
                                 }
                             } else if session.status == .complete {
-                                HStack(spacing: 4) {
+                                HStack(spacing: 2) {
                                     Image(systemName: "checkmark.circle")
                                     Text("Complete")
                                 }
