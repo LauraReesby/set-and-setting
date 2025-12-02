@@ -22,24 +22,31 @@ struct ContentView: View {
                             Text(session.displayTitle)
                                 .font(.headline)
                             if session.status == .needsReflection {
-                                Label("Needs Reflection", systemImage: "bell.badge")
+                                HStack(spacing: 8) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "bell.badge")
+                                        Text("Reflect")
+                                    }
                                     .font(.caption)
                                     .foregroundColor(.orange)
-                                if let reminderLabel = session.reminderDisplayText {
-                                    Label("Reminder: \(reminderLabel)", systemImage: "bell")
+
+                                    if let reminderLabel = session.reminderRelativeDescription {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "bell")
+                                            Text(reminderLabel)
+                                        }
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
                                         .accessibilityIdentifier("needsReflectionReminderLabel")
-                                } else {
-                                    Label("No reminder scheduled", systemImage: "bell.slash")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .accessibilityIdentifier("needsReflectionReminderLabel")
+                                    }
                                 }
                             } else if session.status == .complete {
-                                Label("Complete", systemImage: "checkmark.circle")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle")
+                                    Text("Complete")
+                                }
+                                .font(.caption)
+                                .foregroundColor(.green)
                             }
                             if !session.intention.isEmpty {
                                 Text(session.intention)

@@ -93,46 +93,48 @@ struct SessionDetailView: View {
     private var summarySection: some View {
         Section {
             VStack(alignment: .leading, spacing: 12) {
-                Text(
-                    "\(self.session.treatmentType.displayName) • \(self.dateFormatter.string(from: self.session.sessionDate))"
-                )
-                .font(.headline)
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(self.session.treatmentType.displayName)
+                            .font(.headline)
+                        Text(self.dateFormatter.string(from: self.session.sessionDate))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if self.session.hasMusicLink {
+                        Image(systemName: "music.note.list")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .accessibilityLabel("Music attached")
+                    }
+                }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("Intention")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(self.session.intention.isEmpty ? "Not captured" : self.session.intention)
+                    let trimmed = self.session.intention.trimmingCharacters(in: .whitespacesAndNewlines)
+                    Text(trimmed.isEmpty ? "No intention captured." : trimmed)
                         .font(.body)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Label {
-                        Text(self.session.status.displayName)
-                            .font(.subheadline)
-                    } icon: {
-                        Image(systemName: self.session.status.symbolName)
-                    }
-                    .foregroundStyle(self.session.status.accentColor)
-
-                    Text(self.moodSummaryText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                if self.session.status == .needsReflection {
-                    if let reminderLabel = self.session.reminderDisplayText {
-                        Label("Reminder: \(reminderLabel)", systemImage: "bell")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("detailReminderLabel")
+                HStack(spacing: 8) {
+                    StatusPill(status: self.session.status)
+                    if self.hasAfterMood {
+                        MoodDeltaPill(before: self.session.moodBefore, after: self.session.moodAfter)
                     } else {
-                        Label("No reminder scheduled", systemImage: "bell.slash")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("detailReminderLabel")
+                        MoodBeforePill(value: self.session.moodBefore)
                     }
+                }
+                .padding(.top, 4)
+
+                if self.session.status == .needsReflection,
+                   let reminderLabel = self.session.reminderDisplayText
+                {
+                    ReminderPill(text: reminderLabel)
+                        .accessibilityIdentifier("detailReminderLabel")
                 }
             }
             .padding()
@@ -209,6 +211,90 @@ private extension SessionLifecycleStatus {
         case .needsReflection: .orange
         case .complete: .green
         }
+    }
+}
+
+private struct StatusPill: View {
+    let status: SessionLifecycleStatus
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: status.symbolName)
+            Text(self.labelText)
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(status.accentColor.opacity(0.15))
+        .foregroundStyle(status.accentColor)
+        .clipShape(Capsule())
+    }
+
+    private var labelText: String {
+        switch self.status {
+        case .needsReflection: "Reflect"
+        default: self.status.displayName
+        }
+    }
+}
+
+private struct MoodDeltaPill: View {
+    let before: Int
+    let after: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: self.iconName)
+            Text("Mood \(before) → \(after)")
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(self.tintColor.opacity(0.15))
+        .foregroundStyle(self.tintColor)
+        .clipShape(Capsule())
+    }
+
+    private var iconName: String {
+        after >= before ? "arrow.up.right" : "arrow.down.right"
+    }
+
+    private var tintColor: Color {
+        after >= before ? .blue : .purple
+    }
+}
+
+private struct MoodBeforePill: View {
+    let value: Int
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "face.smiling")
+            Text("Mood \(value)")
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.teal.opacity(0.15))
+        .foregroundStyle(Color.teal)
+        .clipShape(Capsule())
+    }
+}
+
+private struct ReminderPill: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "bell")
+            Text(text)
+        }
+        .font(.caption)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.pink.opacity(0.18))
+        .foregroundStyle(Color.pink)
+        .clipShape(Capsule())
     }
 }
 

@@ -37,6 +37,11 @@ struct SessionFormView: View {
     @State private var moodBefore: Int
     @State private var moodAfter: Int
     @State private var reflectionText: String
+    @State private var musicLinkInput: String
+    @State private var musicLinkMetadata: MusicLinkMetadata?
+    @State private var isFetchingMusicLink = false
+    @State private var musicLinkError: String?
+    @State private var didClearMusicLink = false
 
     // MARK: - Focus Management
 
@@ -64,6 +69,7 @@ struct SessionFormView: View {
     @State private var dateNormalizationMessage = ""
     @State private var showReminderPrompt = false
     @State private var pendingSessionForReminder: TherapeuticSession?
+    private let metadataService = MusicLinkMetadataService()
 
     // MARK: - Init
 
@@ -77,6 +83,11 @@ struct SessionFormView: View {
             _moodBefore = State(initialValue: session.moodBefore)
             _moodAfter = State(initialValue: session.moodAfter)
             _reflectionText = State(initialValue: session.reflections)
+            _musicLinkInput = State(initialValue: session.musicLinkWebURL ?? session.musicLinkURL ?? "")
+            _musicLinkMetadata = State(initialValue: nil)
+            _musicLinkError = State(initialValue: nil)
+            _isFetchingMusicLink = State(initialValue: false)
+            _didClearMusicLink = State(initialValue: false)
         } else {
             self.mode = .create
             _sessionDate = State(initialValue: Date())
@@ -86,6 +97,11 @@ struct SessionFormView: View {
             _moodBefore = State(initialValue: 5)
             _moodAfter = State(initialValue: 5)
             _reflectionText = State(initialValue: "")
+            _musicLinkInput = State(initialValue: "")
+            _musicLinkMetadata = State(initialValue: nil)
+            _musicLinkError = State(initialValue: nil)
+            _isFetchingMusicLink = State(initialValue: false)
+            _didClearMusicLink = State(initialValue: false)
         }
     }
 
@@ -123,6 +139,30 @@ struct SessionFormView: View {
     private var showStickyFooter: Bool { !self.mode.isEditing }
 
     private var editingSession: TherapeuticSession? { self.mode.session }
+
+    private var hasExistingSessionMusicLink: Bool {
+        guard let session = self.editingSession else { return false }
+        return session.hasMusicLink && !self.didClearMusicLink && self.musicLinkMetadata == nil
+    }
+
+    private var hasAnyMusicLink: Bool {
+        self.musicLinkMetadata != nil || self.hasExistingSessionMusicLink
+    }
+
+    private var currentMusicProviderLabel: String? {
+        if let metadata = self.musicLinkMetadata {
+            return metadata.provider.displayName
+        }
+        if self.hasExistingSessionMusicLink, let raw = self.editingSession?.musicLinkProviderRawValue,
+           let provider = MusicLinkProvider(rawValue: raw)
+        {
+            return provider.displayName
+        }
+        if let classification = self.metadataService.classify(urlString: self.musicLinkInput) {
+            return classification.provider.displayName
+        }
+        return nil
+    }
 
     private var statusBanner: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -282,15 +322,51 @@ struct SessionFormView: View {
             self.moodSection
 
             Section("Music") {
-                if let session = self.editingSession, session.hasMusicLink {
-                    MusicLinkSummaryCard(session: session)
-                } else {
-                    Button {
-                        // Placeholder action – handled in Feature 002
-                    } label: {
-                        Label("Attach music link", systemImage: "link")
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .center, spacing: 8) {
+                        TextField(
+                            "Playlist URL",
+                            text: self.$musicLinkInput
+                        )
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                        .keyboardType(.URL)
+                        .accessibilityIdentifier("musicLinkField")
+                        if self.isFetchingMusicLink {
+                            ProgressView()
+                                .progressViewStyle(.circular)
+                        }
+                        Button("Attach") {
+                            self.attachMusicLink()
+                        }
+                        .accessibilityIdentifier("attachMusicLinkButton")
+                        .disabled(self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || self.isFetchingMusicLink)
                     }
-                    .buttonStyle(.borderless)
+
+                    if let providerLabel = self.currentMusicProviderLabel {
+                        Label(providerLabel, systemImage: "music.note.list")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let musicLinkError {
+                        Text(musicLinkError)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    if let metadata = self.musicLinkMetadata {
+                        MusicLinkMetadataPreview(metadata: metadata)
+                    } else if self.hasExistingSessionMusicLink, let session = self.editingSession {
+                        MusicLinkSummaryCard(session: session)
+                    }
+
+                    if self.hasAnyMusicLink {
+                        Button("Remove link", role: .destructive) {
+                            self.removeMusicLink()
+                        }
+                        .accessibilityIdentifier("removeMusicLinkButton")
+                    }
                 }
             }
 
@@ -454,6 +530,7 @@ struct SessionFormView: View {
                 moodBefore: self.moodBefore,
                 moodAfter: self.moodAfter
             )
+            self.applyMusicLink(to: newSession)
 
             Task {
                 do {
@@ -481,6 +558,7 @@ struct SessionFormView: View {
             session.moodBefore = self.moodBefore
             session.moodAfter = self.moodAfter
             session.reflections = self.reflectionText.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.applyMusicLink(to: session)
 
             do {
                 try self.sessionStore.update(session)
@@ -503,6 +581,10 @@ struct SessionFormView: View {
         self.intention = draft.intention
         self.moodBefore = draft.moodBefore
         self.moodAfter = draft.moodAfter
+        self.musicLinkInput = draft.musicLinkWebURL ?? draft.musicLinkURL ?? ""
+        self.musicLinkMetadata = self.metadata(from: draft)
+        self.didClearMusicLink = false
+        self.musicLinkError = nil
     }
 
     private func scheduleDraftSave() {
@@ -518,7 +600,7 @@ struct SessionFormView: View {
 
     private func buildDraftSnapshot() -> TherapeuticSession {
         let normalizedDate = self.validator.normalizeSessionDate(self.sessionDate)
-        return TherapeuticSession(
+        let draft = TherapeuticSession(
             sessionDate: normalizedDate,
             treatmentType: self.selectedTreatmentType,
             administration: self.selectedAdministration,
@@ -526,6 +608,8 @@ struct SessionFormView: View {
             moodBefore: self.moodBefore,
             moodAfter: self.moodAfter
         )
+        self.applyMusicLink(to: draft)
+        return draft
     }
 
     private func handleReminderSelection(_ option: ReminderOption) {
@@ -546,6 +630,98 @@ struct SessionFormView: View {
                 self.dismiss()
             }
         }
+    }
+
+    private func attachMusicLink() {
+        let trimmed = self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            self.musicLinkMetadata = nil
+            self.musicLinkError = nil
+            return
+        }
+        self.isFetchingMusicLink = true
+        self.musicLinkError = nil
+
+        Task {
+            do {
+                let metadata = try await self.metadataService.fetchMetadata(for: trimmed)
+                await MainActor.run {
+                    self.musicLinkMetadata = metadata
+                    self.didClearMusicLink = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.musicLinkError = "Couldn’t attach link. Please check the URL."
+                    self.musicLinkMetadata = nil
+                }
+            }
+            await MainActor.run {
+                self.isFetchingMusicLink = false
+            }
+        }
+    }
+
+    private func removeMusicLink() {
+        self.musicLinkInput = ""
+        self.musicLinkMetadata = nil
+        self.didClearMusicLink = true
+        self.musicLinkError = nil
+    }
+
+    private func applyMusicLink(to session: TherapeuticSession) {
+        if self.didClearMusicLink {
+            session.clearMusicLinkData()
+            return
+        }
+        if let metadata = self.musicLinkMetadata {
+            self.assign(metadata, to: session)
+            return
+        }
+        let trimmed = self.musicLinkInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        if let classification = self.metadataService.classify(urlString: trimmed) {
+            session.musicLinkURL = classification.originalURL.absoluteString
+            session.musicLinkWebURL = classification.canonicalURL.absoluteString
+            session.musicLinkTitle = nil
+            session.musicLinkAuthorName = nil
+            session.musicLinkArtworkURL = nil
+            session.musicLinkProvider = classification.provider
+        } else {
+            session.musicLinkURL = trimmed
+            session.musicLinkWebURL = trimmed
+            session.musicLinkTitle = nil
+            session.musicLinkAuthorName = nil
+            session.musicLinkArtworkURL = nil
+            session.musicLinkProvider = .unknown
+        }
+    }
+
+    private func assign(_ metadata: MusicLinkMetadata, to session: TherapeuticSession) {
+        session.musicLinkURL = metadata.originalURL.absoluteString
+        session.musicLinkWebURL = metadata.canonicalURL.absoluteString
+        session.musicLinkTitle = metadata.title
+        session.musicLinkAuthorName = metadata.authorName
+        session.musicLinkArtworkURL = metadata.thumbnailURL?.absoluteString
+        session.musicLinkProvider = metadata.provider
+    }
+
+    private func metadata(from session: TherapeuticSession) -> MusicLinkMetadata? {
+        guard session.hasMusicLink else { return nil }
+        guard
+            let originalString = session.musicLinkURL ?? session.musicLinkWebURL,
+            let canonicalString = session.musicLinkWebURL ?? session.musicLinkURL,
+            let original = URL(string: originalString),
+            let canonical = URL(string: canonicalString)
+        else { return nil }
+        return MusicLinkMetadata(
+            provider: session.musicLinkProvider,
+            originalURL: original,
+            canonicalURL: canonical,
+            title: session.musicLinkTitle,
+            authorName: session.musicLinkAuthorName,
+            thumbnailURL: session.musicLinkArtworkURL.flatMap(URL.init(string:))
+        )
     }
 }
 

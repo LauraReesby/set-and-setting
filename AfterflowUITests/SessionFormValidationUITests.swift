@@ -40,6 +40,29 @@ final class SessionFormValidationUITests: XCTestCase {
         sessionCell.waitForHittable()
     }
 
+    func testAttachAndRemoveMusicLink() throws {
+        let app = self.makeApp()
+        self.presentSessionForm(app)
+
+        let musicField = app.textFields["musicLinkField"]
+        XCTAssertTrue(musicField.waitForExistence(timeout: 2), "Playlist link field should exist")
+        musicField.tap()
+        musicField.typeText("https://music.apple.com/us/playlist/calm/pl.u-123")
+
+        let attachButton = app.buttons["attachMusicLinkButton"]
+        XCTAssertTrue(attachButton.waitForExistence(timeout: 2))
+        attachButton.tap()
+
+        let preview = app.otherElements["musicLinkPreview"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 3), "Preview should appear for link-only provider")
+
+        let removeButton = app.buttons["removeMusicLinkButton"]
+        XCTAssertTrue(removeButton.waitForExistence(timeout: 2))
+        removeButton.tap()
+
+        XCTAssertFalse(preview.waitForExistence(timeout: 1), "Preview should disappear after removing link")
+    }
+
     // MARK: - Helpers
 
     private func presentSessionForm(_ app: XCUIApplication) {

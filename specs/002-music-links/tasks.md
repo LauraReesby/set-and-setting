@@ -10,10 +10,10 @@ _Status reset 2025‑11‑29: pivoted from Spotify-only OAuth to general playlis
 - [x] T205 [US1] QA verification: privacy (no tokens), accessibility of copy, performance profiling (<3 s fetch).  
 
 ## Phase 2 – Session Form UX
-- [ ] T206 [US1] Add “Playlist Link” input row with validation status + provider badge, including edit/replace and clear actions.  
-- [ ] T207 [US1] Wire input row to metadata service (auto-fetch on paste, retry CTA, loading indicators).  
-- [ ] T208 [US1] Persist normalized metadata in `TherapeuticSession` + SessionStore, including remove-link action.  
-- [ ] T209 [US1] XCUITests for adding/removing playlist links on the form.  
+- [x] T206 [US1] Add “Playlist Link” input row with validation status + provider badge, including edit/replace and clear actions.  
+- [x] T207 [US1] Wire input row to metadata service (auto-fetch on paste, retry CTA, loading indicators).  
+- [x] T208 [US1] Persist normalized metadata in `TherapeuticSession` + SessionStore, including remove-link action.  
+- [x] T209 [US1] XCUITests for adding/removing playlist links on the form.  
 
 ## Phase 3 – Session Detail UX
 - [ ] T210 [US2] Build `MusicLinkCardView` showing title, provider icon, thumbnail (if available), and fallback copy.  

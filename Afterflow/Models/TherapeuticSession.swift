@@ -277,6 +277,25 @@ extension TherapeuticSession {
     /// Display string for reminder timestamp
     var reminderDisplayText: String? {
         guard let reminderDate else { return nil }
+        if reminderDate < Date() {
+            return nil
+        }
+        return reminderDate.formatted(date: .abbreviated, time: .shortened)
+    }
+
+    var reminderRelativeDescription: String? {
+        guard let reminderDate else { return nil }
+        if reminderDate < Date() {
+            return nil
+        }
+        let calendar = Calendar.current
+        let timeString = reminderDate.formatted(date: .omitted, time: .shortened)
+        if calendar.isDateInToday(reminderDate) {
+            return "Today \(timeString)"
+        }
+        if calendar.isDateInTomorrow(reminderDate) {
+            return "Tomorrow \(timeString)"
+        }
         return reminderDate.formatted(date: .abbreviated, time: .shortened)
     }
 
@@ -326,7 +345,7 @@ enum SessionLifecycleStatus: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .draft: "Draft"
-        case .needsReflection: "Needs Reflection"
+        case .needsReflection: "Reflect"
         case .complete: "Complete"
         }
     }

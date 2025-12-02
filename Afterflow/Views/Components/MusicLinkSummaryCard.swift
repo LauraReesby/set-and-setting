@@ -7,8 +7,10 @@ struct MusicLinkSummaryCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(self.session.musicLinkTitle ?? "Playlist link")
                 .font(.headline)
-            if let provider = session.musicLinkProviderRawValue {
-                Text(provider.capitalized)
+            if let providerRaw = session.musicLinkProviderRawValue,
+               let provider = MusicLinkProvider(rawValue: providerRaw)
+            {
+                Text(provider.displayName)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
