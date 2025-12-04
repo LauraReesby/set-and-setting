@@ -24,7 +24,7 @@ struct ContentView: View {
                             if session.status == .needsReflection {
                                 HStack(spacing: 8) {
                                     HStack(spacing: 3) {
-                                        Image(systemName: "bell.badge")
+                                        Image(systemName: "hourglass")
                                         Text("Reflect")
                                     }
                                     .font(.caption)
@@ -139,8 +139,9 @@ struct ContentView: View {
         withAnimation {
             guard let index = offsets.first else { return }
             let session = self.filteredSessions[index]
+            let snapshot = self.clone(session)
             try? self.sessionStore.delete(session)
-            self.scheduleUndo(for: session, originalIndex: index)
+            self.scheduleUndo(for: snapshot, originalIndex: index)
         }
     }
 
@@ -174,6 +175,31 @@ struct ContentView: View {
         self.recentlyDeleted = nil
         self.showUndoBanner = false
         self.undoTask = nil
+    }
+
+    /// Create a fresh, insertable copy of the session so undo isn't blocked by SwiftData object state.
+    private func clone(_ session: TherapeuticSession) -> TherapeuticSession {
+        let copy = TherapeuticSession(
+            sessionDate: session.sessionDate,
+            treatmentType: session.treatmentType,
+            administration: session.administration,
+            intention: session.intention,
+            moodBefore: session.moodBefore,
+            moodAfter: session.moodAfter,
+            reflections: session.reflections,
+            reminderDate: session.reminderDate
+        )
+        copy.id = session.id
+        copy.createdAt = session.createdAt
+        copy.updatedAt = session.updatedAt
+        copy.musicLinkURL = session.musicLinkURL
+        copy.musicLinkWebURL = session.musicLinkWebURL
+        copy.musicLinkTitle = session.musicLinkTitle
+        copy.musicLinkAuthorName = session.musicLinkAuthorName
+        copy.musicLinkArtworkURL = session.musicLinkArtworkURL
+        copy.musicLinkDurationSeconds = session.musicLinkDurationSeconds
+        copy.musicLinkProvider = session.musicLinkProvider
+        return copy
     }
 }
 

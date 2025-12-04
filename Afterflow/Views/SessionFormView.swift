@@ -341,12 +341,6 @@ struct SessionFormView: View {
                         }
                     }
 
-                    if let providerLabel = self.currentMusicProviderLabel {
-                        Label(providerLabel, systemImage: "music.note.list")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
                     if let musicLinkError {
                         Text(musicLinkError)
                             .font(.caption)
@@ -440,20 +434,6 @@ extension SessionFormView {
 
     private var hasAnyMusicLink: Bool {
         self.musicLinkMetadata != nil || self.hasExistingSessionMusicLink || !self.trimmedMusicLinkInput.isEmpty
-    }
-
-    private var currentMusicProviderLabel: String? {
-        if let metadata = self.musicLinkMetadata {
-            return metadata.provider.displayName
-        }
-        if self.hasExistingSessionMusicLink, let raw = self.editingSession?.musicLinkProviderRawValue,
-           let provider = MusicLinkProvider(rawValue: raw) {
-            return provider.displayName
-        }
-        if let classification = self.metadataService.classify(urlString: self.musicLinkInput) {
-            return classification.provider.displayName
-        }
-        return nil
     }
 
     private var shouldShowMusicLinkHelper: Bool {
