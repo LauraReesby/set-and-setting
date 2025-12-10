@@ -120,9 +120,7 @@ struct ContentView: View {
         ) { result in
             do {
                 let url = try result.get()
-                let sessions = try CSVImportService().import(from: url)
-                self.pendingImportedSessions = sessions
-                self.showingImportConfirmation = !sessions.isEmpty
+                self.importCSV(from: url)
             } catch {
                 self.importError = error.localizedDescription
             }
@@ -562,6 +560,43 @@ private extension ContentView {
                 }
             }
         #endif
+    }
+
+    func importCSV(from url: URL) {
+        Task {
+            let didStart = url.startAccessingSecurityScopedResource()
+            defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+
+            do {
+                try await self.downloadIfNeeded(url: url)
+                let sessions = try CSVImportService().import(from: url)
+                await MainActor.run {
+                    self.pendingImportedSessions = sessions
+                    self.showingImportConfirmation = !sessions.isEmpty
+                }
+            } catch {
+                await MainActor.run {
+                    self.importError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func downloadIfNeeded(url: URL) async throws {
+        let values = try url.resourceValues(forKeys: [.isUbiquitousItemKey])
+        guard values.isUbiquitousItem == true else { return }
+
+        try FileManager.default.startDownloadingUbiquitousItem(at: url)
+
+        while true {
+            let status = try url.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey])
+            if let downloadingStatus = status.ubiquitousItemDownloadingStatus,
+               downloadingStatus == URLUbiquitousItemDownloadingStatus.current ||
+               downloadingStatus == URLUbiquitousItemDownloadingStatus.downloaded {
+                break
+            }
+            try await Task.sleep(nanoseconds: 200_000_000)
+        }
     }
 
     func confirmImport() {
