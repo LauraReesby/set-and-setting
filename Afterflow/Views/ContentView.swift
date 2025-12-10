@@ -1,6 +1,9 @@
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct ContentView: View {
     @Query(sort: \TherapeuticSession.sessionDate, order: .reverse)
@@ -27,6 +30,11 @@ struct ContentView: View {
     @State private var exportFilename: String = "Afterflow-Export"
     @State private var showingFileExporter = false
     @State private var exportError: String?
+    @State private var showingImportPicker = false
+    @State private var importError: String?
+    @State private var pendingImportedSessions: [TherapeuticSession] = []
+    @State private var showingImportConfirmation = false
+    @State private var settingsError: String?
 
     var body: some View {
         NavigationSplitView {
@@ -35,7 +43,9 @@ struct ContentView: View {
                 listViewModel: self.$listViewModel,
                 onDelete: self.deleteSessions,
                 onAdd: { self.showingSessionForm = true },
-                onExport: { self.showingExportSheet = true }
+                onExport: { self.showingExportSheet = true },
+                onImport: { self.showingImportPicker = true },
+                onOpenSettings: { self.openAppSettings() }
             )
         } detail: {
             if let sessionID = selectedSessionID,
@@ -96,7 +106,46 @@ struct ContentView: View {
         } message: {
             Text(self.exportError ?? "")
         }
+        .alert("Import Error", isPresented: Binding(
+            get: { self.importError != nil },
+            set: { if !$0 { self.importError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(self.importError ?? "")
+        }
+        .fileImporter(
+            isPresented: self.$showingImportPicker,
+            allowedContentTypes: [.commaSeparatedText]
+        ) { result in
+            do {
+                let url = try result.get()
+                let sessions = try CSVImportService().import(from: url)
+                self.pendingImportedSessions = sessions
+                self.showingImportConfirmation = !sessions.isEmpty
+            } catch {
+                self.importError = error.localizedDescription
+            }
+        }
+        .alert("Import Sessions", isPresented: self.$showingImportConfirmation) {
+            Button("Import \(self.pendingImportedSessions.count) Sessions") {
+                self.confirmImport()
+            }
+            Button("Cancel", role: .cancel) {
+                self.pendingImportedSessions = []
+            }
+        } message: {
+            Text("Import \(self.pendingImportedSessions.count) session(s) from the selected CSV?")
+        }
         .overlay { ExportOverlay(isExporting: self.isExporting) { self.cancelExport() } }
+        .alert("Settings", isPresented: Binding(
+            get: { self.settingsError != nil },
+            set: { if !$0 { self.settingsError = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(self.settingsError ?? "")
+        }
         .overlay(alignment: .top) {
             if !self.notificationHandler.confirmations.recentConfirmations.isEmpty {
                 VStack(spacing: 8) {
@@ -259,6 +308,8 @@ private struct SessionListSection: View {
     let onDelete: (IndexSet) -> Void
     let onAdd: () -> Void
     let onExport: () -> Void
+    let onImport: () -> Void
+    let onOpenSettings: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -295,14 +346,32 @@ private struct SessionListSection: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) { FilterMenu(listViewModel: self.$listViewModel) }
-        ToolbarItem(placement: .navigationBarTrailing) {
-            Button(action: self.onExport) {
-                Label("Export", systemImage: "square.and.arrow.up")
-                    .glassCapsule(cornerRadius: 18)
+        ToolbarItem(placement: .navigationBarLeading) {
+            Menu {
+                Button {
+                    self.onOpenSettings()
+                } label: {
+                    Label("Settings", systemImage: "gearshape")
+                }
+                Button {
+                    self.onExport()
+                } label: {
+                    Label("Export", systemImage: "square.and.arrow.up")
+                }
+                Button {
+                    self.onImport()
+                } label: {
+                    Label("Import", systemImage: "square.and.arrow.down")
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.title3)
+                    .padding(.horizontal, 2)
             }
-            .accessibilityIdentifier("exportSessionsButton")
-            .accessibilityLabel("Export Sessions")
+            .accessibilityLabel("More options")
+        }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            FilterMenu(listViewModel: self.$listViewModel)
         }
     }
 }
@@ -481,6 +550,28 @@ private struct SessionRowView: View {
 }
 
 private extension ContentView {
+    func openAppSettings() {
+        #if canImport(UIKit)
+            guard let url = URL(string: UIApplication.openSettingsURLString) else {
+                self.settingsError = "Unable to open Settings. Please open Settings > Afterflow manually."
+                return
+            }
+            UIApplication.shared.open(url) { success in
+                if !success {
+                    self.settingsError = "Unable to open Settings. Please open Settings > Afterflow manually."
+                }
+            }
+        #endif
+    }
+
+    func confirmImport() {
+        guard !self.pendingImportedSessions.isEmpty else { return }
+        for session in self.pendingImportedSessions {
+            try? self.sessionStore.create(session)
+        }
+        self.pendingImportedSessions = []
+    }
+
     func clone(_ session: TherapeuticSession) -> TherapeuticSession {
         let copy = TherapeuticSession(
             sessionDate: session.sessionDate,

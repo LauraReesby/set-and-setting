@@ -70,6 +70,19 @@ final class CSVImportServiceTests: XCTestCase {
         }
     }
 
+    func testInvalidRowThrows() {
+        // Missing one column
+        let csv =
+            "Date,Treatment Type,Administration,Intention,Mood Before,Mood After,Reflections,Music Link URL\n" +
+            "\"Dec 1, 2024 at 10:30 AM\",Psilocybin,Oral,Grounding,5,5,Missing URL"
+
+        XCTAssertThrowsError(try CSVImportService().import(from: csv)) { error in
+            guard case CSVImportService.CSVImportError.invalidRow = error else {
+                return XCTFail("Expected invalidRow, got \(error)")
+            }
+        }
+    }
+
     private func date(_ iso8601: String) -> Date {
         ISO8601DateFormatter().date(from: iso8601) ?? Date()
     }
