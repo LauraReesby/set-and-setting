@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import UserNotifications
 
 protocol NotificationCentering {
@@ -16,7 +17,7 @@ extension UNUserNotificationCenter: NotificationCentering {
 }
 
 @MainActor
-final class ReminderScheduler: Sendable {
+final class ReminderScheduler {
     enum ReminderError: Error, LocalizedError {
         case permissionDenied
         case schedulingFailed(Error)
@@ -25,7 +26,7 @@ final class ReminderScheduler: Sendable {
             switch self {
             case .permissionDenied:
                 "Notification permission denied. Enable in Settings to receive reminders."
-            case .schedulingFailed(let error):
+            case let .schedulingFailed(error):
                 "Failed to schedule reminder: \(error.localizedDescription)"
             }
         }
@@ -35,6 +36,32 @@ final class ReminderScheduler: Sendable {
 
     init(notificationCenter: NotificationCentering = UNUserNotificationCenter.current()) {
         self.notificationCenter = notificationCenter
+        Task {
+            await self.registerNotificationCategories()
+        }
+    }
+
+    private func registerNotificationCategories() async {
+        guard let realCenter = notificationCenter as? UNUserNotificationCenter else {
+            return
+        }
+
+        let reflectionAction = UNTextInputNotificationAction(
+            identifier: "QUICK_REFLECTION_ACTION",
+            title: "Add Reflection",
+            options: [.authenticationRequired],
+            textInputButtonTitle: "Save",
+            textInputPlaceholder: "Share your thoughts"
+        )
+
+        let reminderCategory = UNNotificationCategory(
+            identifier: "THERAPEUTIC_SESSION_REMINDER",
+            actions: [reflectionAction],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+
+        realCenter.setNotificationCategories([reminderCategory])
     }
 
     func setReminder(
@@ -65,10 +92,14 @@ final class ReminderScheduler: Sendable {
             session.reminderDate = targetDate
 
             let content = UNMutableNotificationContent()
-            content.title = "Needs Reflection"
-            content.body = "Tap to add reflections for \(session.displayTitle)."
+            content.title = "Time to Reflect"
+            content.body = "Add thoughts about your recent session."
             content.sound = .default
+            content.categoryIdentifier = "THERAPEUTIC_SESSION_REMINDER"
             content.userInfo = ["sessionID": session.id.uuidString]
+
+            content.accessibilityLabel = "Reflection reminder"
+            content.accessibilityHint = "Double-tap to open session, or use Add Reflection to quickly save thoughts"
 
             let trigger = UNTimeIntervalNotificationTrigger(
                 timeInterval: targetDate.timeIntervalSince(now),

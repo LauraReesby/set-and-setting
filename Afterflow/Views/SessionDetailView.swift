@@ -19,23 +19,23 @@ struct SessionDetailView: View {
 
     var body: some View {
         List {
-            SessionSummarySection(session: session, dateFormatter: dateFormatter)
+            SessionSummarySection(session: self.session, dateFormatter: self.dateFormatter)
 
-            SessionMetadataSection(session: session, dateFormatter: dateFormatter)
+            SessionMetadataSection(session: self.session, dateFormatter: self.dateFormatter)
 
-            SessionTreatmentSection(session: session)
+            SessionTreatmentSection(session: self.session)
 
-            SessionIntentionSection(intention: session.intention)
+            SessionIntentionSection(intention: self.session.intention)
 
-            SessionMoodSection(session: session)
+            SessionMoodSection(session: self.session)
 
             SessionMusicSection(
-                session: session,
-                onAttachMusic: { showingEdit = true },
+                session: self.session,
+                onAttachMusic: { self.showingEdit = true },
                 onOpenLink: openMusicLink
             )
 
-            SessionReflectionSection(reflections: session.reflections)
+            SessionReflectionSection(reflections: self.session.reflections)
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Session")
@@ -72,7 +72,6 @@ struct SessionDetailView: View {
             await self.hydrateMusicMetadataIfNeeded()
         }
     }
-
 
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -319,30 +318,30 @@ private struct SessionSummarySection: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(session.treatmentType.displayName)
+                        Text(self.session.treatmentType.displayName)
                             .font(.headline)
-                        Text(dateFormatter.string(from: session.sessionDate))
+                        Text(self.dateFormatter.string(from: self.session.sessionDate))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     Spacer()
-                    if session.hasMusicLink {
-                        summaryBadge
+                    if self.session.hasMusicLink {
+                        self.summaryBadge
                             .accessibilityLabel("Music attached")
                     }
                 }
 
                 HStack(spacing: 8) {
-                    StatusPill(status: session.status)
-                    if hasAfterMood {
-                        MoodDeltaPill(before: session.moodBefore, after: session.moodAfter)
+                    StatusPill(status: self.session.status)
+                    if self.hasAfterMood {
+                        MoodDeltaPill(before: self.session.moodBefore, after: self.session.moodAfter)
                     } else {
-                        MoodBeforePill(value: session.moodBefore)
+                        MoodBeforePill(value: self.session.moodBefore)
                     }
                 }
                 .padding(.top, 2)
 
-                if session.status == .needsReflection,
+                if self.session.status == .needsReflection,
                    let reminderLabel = session.reminderRelativeDescription {
                     ReminderPill(text: reminderLabel)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -363,8 +362,8 @@ private struct SessionSummarySection: View {
     }
 
     private var hasAfterMood: Bool {
-        let reflectionSet = !session.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return reflectionSet || session.moodAfter != 5
+        let reflectionSet = !self.session.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return reflectionSet || self.session.moodAfter != 5
     }
 
     private var summaryBadge: some View {
@@ -391,7 +390,7 @@ private struct SessionMetadataSection: View {
 
     var body: some View {
         Section("When") {
-            SessionDetailRow(title: "Date & Time", value: dateFormatter.string(from: session.sessionDate))
+            SessionDetailRow(title: "Date & Time", value: self.dateFormatter.string(from: self.session.sessionDate))
         }
         .accessibilityElement(children: .contain)
     }
@@ -402,8 +401,8 @@ private struct SessionTreatmentSection: View {
 
     var body: some View {
         Section("Treatment") {
-            SessionDetailRow(title: "Type", value: session.treatmentType.displayName)
-            SessionDetailRow(title: "Administration", value: session.administration.displayName)
+            SessionDetailRow(title: "Type", value: self.session.treatmentType.displayName)
+            SessionDetailRow(title: "Administration", value: self.session.administration.displayName)
         }
         .accessibilityElement(children: .contain)
     }
@@ -414,7 +413,7 @@ private struct SessionIntentionSection: View {
 
     var body: some View {
         Section("Intention") {
-            Text(intention.isEmpty ? "No intention captured." : intention)
+            Text(self.intention.isEmpty ? "No intention captured." : self.intention)
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -427,9 +426,9 @@ private struct SessionMoodSection: View {
 
     var body: some View {
         Section("Mood") {
-            moodRow(title: "Before", value: session.moodBefore)
-            if hasAfterMood {
-                moodRow(title: "After", value: session.moodAfter)
+            self.moodRow(title: "Before", value: self.session.moodBefore)
+            if self.hasAfterMood {
+                self.moodRow(title: "After", value: self.session.moodAfter)
             } else {
                 SessionDetailRow(title: "After", value: "Not added yet")
             }
@@ -438,8 +437,8 @@ private struct SessionMoodSection: View {
     }
 
     private var hasAfterMood: Bool {
-        let reflectionSet = !session.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        return reflectionSet || session.moodAfter != 5
+        let reflectionSet = !self.session.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return reflectionSet || self.session.moodAfter != 5
     }
 
     private func moodRow(title: String, value: Int) -> some View {
@@ -456,19 +455,19 @@ private struct SessionMusicSection: View {
 
     var body: some View {
         Section("Music") {
-            if session.hasMusicLink {
+            if self.session.hasMusicLink {
                 MusicLinkDetailCard(
-                    title: session.musicLinkTitle ?? "Playlist link",
-                    provider: session.musicLinkProvider,
-                    author: session.musicLinkAuthorName,
-                    urlDisplay: session.musicLinkWebURL ?? session.musicLinkURL ?? "",
-                    artworkURL: session.musicLinkArtworkURL.flatMap(URL.init(string:)),
-                    openAction: onOpenLink
+                    title: self.session.musicLinkTitle ?? "Playlist link",
+                    provider: self.session.musicLinkProvider,
+                    author: self.session.musicLinkAuthorName,
+                    urlDisplay: self.session.musicLinkWebURL ?? self.session.musicLinkURL ?? "",
+                    artworkURL: self.session.musicLinkArtworkURL.flatMap(URL.init(string:)),
+                    openAction: self.onOpenLink
                 )
                 .listRowInsets(.init(top: 4, leading: 8, bottom: 4, trailing: 8))
             } else {
                 Button {
-                    onAttachMusic()
+                    self.onAttachMusic()
                 } label: {
                     Label("Attach music link", systemImage: "link.badge.plus")
                         .font(.subheadline.weight(.semibold))
@@ -490,11 +489,11 @@ private struct SessionReflectionSection: View {
 
     var body: some View {
         Section("Reflection") {
-            if reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            if self.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("You haven't added reflections yet.")
                     .foregroundStyle(.secondary)
             } else {
-                Text(MarkdownRenderer.render(reflections))
+                Text(MarkdownRenderer.render(self.reflections))
                     .font(.body)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)

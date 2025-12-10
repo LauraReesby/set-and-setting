@@ -75,6 +75,7 @@ struct SessionStoreTests {
         #expect(session.reminderDate == nil)
     }
 
+    // swiftlint:disable large_tuple
     private func makeStore() throws -> (SessionStore, ModelContainer, MockNotificationCenter) {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try ModelContainer(for: TherapeuticSession.self, configurations: config)
@@ -90,6 +91,7 @@ struct SessionStoreTests {
         )
         return (store, container, mockCenter)
     }
+    // swiftlint:enable large_tuple
 }
 
 private final class MockNotificationCenter: NotificationCentering {

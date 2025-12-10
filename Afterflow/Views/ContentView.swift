@@ -7,17 +7,18 @@ struct ContentView: View {
     private var allSessions: [TherapeuticSession]
 
     @Environment(SessionStore.self) private var sessionStore
+    @EnvironmentObject private var notificationHandler: NotificationHandler
 
-    // UI State
     @State private var showingSessionForm = false
     @State private var listViewModel = SessionListViewModel()
 
-    // Undo State
+    @State private var selectedSessionID: UUID?
+    @State private var deepLinkAlert: (title: String, message: String)?
+
     @State private var recentlyDeleted: (session: TherapeuticSession, index: Int)?
     @State private var showUndoBanner = false
     @State private var undoTask: Task<Void, Never>?
 
-    // Export State
     @State private var showingExportSheet = false
     @State private var isExporting = false
     @State private var exportTask: Task<Void, Never>?
@@ -37,9 +38,26 @@ struct ContentView: View {
                 onExport: { self.showingExportSheet = true }
             )
         } detail: {
-            Text("Select a session")
+            if let sessionID = selectedSessionID,
+               let session = allSessions.first(where: { $0.id == sessionID }) {
+                SessionDetailView(session: session)
+            } else {
+                Text("Select a session")
+                    .foregroundColor(.secondary)
+            }
         }
-        // Add Session Sheet
+        .onChange(of: self.notificationHandler.pendingDeepLink) { _, deepLink in
+            guard let deepLink else { return }
+            self.handleDeepLink(deepLink)
+        }
+        .alert("Navigation Error", isPresented: Binding(
+            get: { self.deepLinkAlert != nil },
+            set: { if !$0 { self.deepLinkAlert = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(self.deepLinkAlert?.message ?? "")
+        }
         .sheet(isPresented: self.$showingSessionForm) {
             NavigationStack { SessionFormView() }
                 .presentationDetents([.large])
@@ -47,7 +65,6 @@ struct ContentView: View {
                 .presentationCornerRadius(16)
                 .toolbarBackground(.visible, for: .automatic)
         }
-        // Export Options Sheet
         .sheet(isPresented: self.$showingExportSheet) {
             ExportSheetView(
                 availableTreatmentTypes: PsychedelicTreatmentType.allCases,
@@ -58,7 +75,6 @@ struct ContentView: View {
                 }
             )
         }
-        // File Exporter
         .fileExporter(
             isPresented: self.$showingFileExporter,
             document: self.exportDocument,
@@ -72,7 +88,6 @@ struct ContentView: View {
             }
             self.exportDocument = nil
         }
-        // Export Error Alert
         .alert("Export Error", isPresented: Binding(
             get: { self.exportError != nil },
             set: { if !$0 { self.exportError = nil } }
@@ -81,8 +96,18 @@ struct ContentView: View {
         } message: {
             Text(self.exportError ?? "")
         }
-        // Export Overlay
         .overlay { ExportOverlay(isExporting: self.isExporting) { self.cancelExport() } }
+        .overlay(alignment: .top) {
+            if !self.notificationHandler.confirmations.recentConfirmations.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(self.notificationHandler.confirmations.recentConfirmations, id: \.self) { message in
+                        ReflectionConfirmationBanner(message: message)
+                    }
+                }
+                .padding(.top, 8)
+                .animation(.easeInOut(duration: 0.3), value: self.notificationHandler.confirmations.recentConfirmations)
+            }
+        }
     }
 
     private var filteredSessions: [TherapeuticSession] {
@@ -109,9 +134,7 @@ struct ContentView: View {
                 try await Task.sleep(for: .seconds(10))
                 try Task.checkCancellation()
                 await MainActor.run { self.finalizeDeletion() }
-            } catch {
-                // Cancelled or failed sleep; do nothing so user can still undo if needed
-            }
+            } catch {}
         }
     }
 
@@ -121,9 +144,7 @@ struct ContentView: View {
             try self.sessionStore.create(deleted.session)
             self.recentlyDeleted = nil
             self.showUndoBanner = false
-        } catch {
-            // keep banner visible so user can try again
-        }
+        } catch {}
         self.undoTask?.cancel()
         self.undoTask = nil
     }
@@ -165,6 +186,33 @@ struct ContentView: View {
     private func cancelExport() {
         self.exportTask?.cancel()
         self.isExporting = false
+    }
+
+    private func handleDeepLink(_ action: NotificationHandler.DeepLinkAction) {
+        Task {
+            do {
+                try await self.notificationHandler.processDeepLink(action)
+
+                if case let .openSession(sessionID) = action {
+                    await MainActor.run {
+                        self.selectedSessionID = sessionID
+                        self.notificationHandler.clearPendingDeepLink()
+                    }
+                } else {
+                    await MainActor.run {
+                        self.notificationHandler.clearPendingDeepLink()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.deepLinkAlert = (
+                        title: "Navigation Error",
+                        message: error.localizedDescription
+                    )
+                    self.notificationHandler.clearPendingDeepLink()
+                }
+            }
+        }
     }
 
     private func performExport(
@@ -472,6 +520,40 @@ private extension View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(Color.white.opacity(0.25), lineWidth: 0.5)
             )
+    }
+}
+
+private struct ReflectionConfirmationBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .accessibilityHidden(true)
+
+            Text(self.message)
+                .font(.footnote)
+                .fontWeight(.medium)
+
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(Color.green.opacity(0.2), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Success: \(self.message)")
+        .accessibilityAddTraits(.isStaticText)
+        .transition(.move(edge: .top).combined(with: .opacity))
     }
 }
 

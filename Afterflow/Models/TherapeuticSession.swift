@@ -211,17 +211,14 @@ final class TherapeuticSession {
 }
 
 extension TherapeuticSession {
-    // Human-readable session title for UI display
     var displayTitle: String {
         "\(self.treatmentType.displayName) • \(self.sessionDate.formatted(date: .abbreviated, time: .omitted))"
     }
 
-    // Mood change from before to after session
     var moodChange: Int {
         self.moodAfter - self.moodBefore
     }
 
-    // Whether this session has a stored playlist link
     var hasMusicLink: Bool {
         guard let url = self.musicLinkURL ?? self.musicLinkWebURL else { return false }
         return !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -247,7 +244,6 @@ extension TherapeuticSession {
         return nil
     }
 
-    // Display string for reminder timestamp
     var reminderDisplayText: String? {
         guard let reminderDate else { return nil }
         if reminderDate < Date() {
@@ -272,14 +268,12 @@ extension TherapeuticSession {
         return reminderDate.formatted(date: .abbreviated, time: .shortened)
     }
 
-    // Validation for required fields and psychedelic treatment types
     var isValid: Bool {
         !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             self.moodBefore >= 1 && self.moodBefore <= 10 &&
             self.moodAfter >= 1 && self.moodAfter <= 10
     }
 
-    // Derived lifecycle status based on required fields and reflections
     var status: SessionLifecycleStatus {
         let hasCoreFields = !self.intention.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
             (1 ... 10).contains(self.moodBefore)
@@ -303,6 +297,21 @@ extension TherapeuticSession {
         self.musicLinkArtworkURL = nil
         self.musicLinkDurationSeconds = nil
         self.musicLinkProviderRawValue = nil
+        self.markAsUpdated()
+    }
+
+    func addReflection(_ reflection: String, timestamp: Date = Date()) {
+        let trimmedReflection = reflection.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedReflection.isEmpty else { return }
+
+        let timestampedEntry = "[\(timestamp.formatted(date: .omitted, time: .shortened))] \(trimmedReflection)"
+
+        if self.reflections.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.reflections = timestampedEntry
+        } else {
+            self.reflections += "\n\n\(timestampedEntry)"
+        }
+
         self.markAsUpdated()
     }
 }

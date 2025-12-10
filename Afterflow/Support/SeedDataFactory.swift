@@ -1,6 +1,7 @@
 import Foundation
 
 enum SeedDataFactory {
+    // swiftlint:disable function_body_length
     static func makeSeedSessions(referenceDate: Date = Date()) -> [TherapeuticSession] {
         let now = referenceDate
         var seeds: [TherapeuticSession] = []
@@ -120,4 +121,5 @@ enum SeedDataFactory {
 
         return seeds
     }
+    // swiftlint:enable function_body_length
 }

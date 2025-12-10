@@ -1,6 +1,7 @@
 import SwiftData
 import SwiftUI
 import UIKit
+import UserNotifications
 
 @main
 struct AfterflowApp: App {
@@ -23,11 +24,16 @@ struct AfterflowApp: App {
     }()
 
     private let sessionStore: SessionStore = .init(modelContext: Self.sharedModelContainer.mainContext)
+    private let notificationHandler = NotificationHandler(modelContext: Self.sharedModelContainer.mainContext)
     private let isUITesting: Bool = ProcessInfo.processInfo.arguments.contains("-ui-testing")
 
     init() {
         if ProcessInfo.processInfo.arguments.contains("-ui-musiclink-fixtures") {
             self.seedMusicLinkFixtures()
+        }
+
+        if !self.isUITesting {
+            UNUserNotificationCenter.current().delegate = self.notificationHandler
         }
     }
 
@@ -36,6 +42,7 @@ struct AfterflowApp: App {
             ContentView()
                 .modelContainer(Self.sharedModelContainer)
                 .environment(self.sessionStore)
+                .environmentObject(self.notificationHandler)
         }
     }
 

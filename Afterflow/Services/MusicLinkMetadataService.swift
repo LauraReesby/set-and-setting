@@ -17,8 +17,7 @@ struct MusicLinkMetadata: Equatable, Sendable {
     let durationSeconds: Int?
 }
 
-@MainActor
-final class MusicLinkMetadataService: Sendable {
+final class MusicLinkMetadataService {
     enum ServiceError: Error {
         case invalidURL
         case requestFailed
@@ -58,7 +57,6 @@ final class MusicLinkMetadataService: Sendable {
 
         let cacheKey = classification.canonicalURL.absoluteString.lowercased()
 
-        // Thread-safe cache read
         if let cached = cache.withLock({ $0[cacheKey] }) {
             return cached
         }
@@ -85,8 +83,7 @@ final class MusicLinkMetadataService: Sendable {
             metadata = self.fallbackMetadata(for: classification)
         }
 
-        // Thread-safe cache write
-        cache.withLock { $0[cacheKey] = metadata }
+        self.cache.withLock { $0[cacheKey] = metadata }
         return metadata
     }
 

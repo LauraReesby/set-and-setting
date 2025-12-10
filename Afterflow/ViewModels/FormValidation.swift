@@ -17,7 +17,7 @@ struct SessionFormData {
 struct FormValidation {
     private static let earliestValidSessionDate: TimeInterval = -10 * 365 * 24 * 60 * 60 // 10 years ago
 
-    private static let futureToleranceInterval: TimeInterval = 60 * 60 * 8 // 8 hour
+    private static let futureToleranceInterval: TimeInterval = 60 * 60 * 8 // 8 hours
 
     func validateIntention(_ intention: String) -> FieldValidationState {
         let trimmed = intention.trimmingCharacters(in: .whitespacesAndNewlines)
