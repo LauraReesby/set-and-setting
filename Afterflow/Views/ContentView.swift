@@ -45,7 +45,8 @@ struct ContentView: View {
                 onAdd: { self.showingSessionForm = true },
                 onExport: { self.showingExportSheet = true },
                 onImport: { self.showingImportPicker = true },
-                onOpenSettings: { self.openAppSettings() }
+                onOpenSettings: { self.openAppSettings() },
+                onExampleImport: { self.exportExampleImport() }
             )
         } detail: {
             if let sessionID = selectedSessionID,
@@ -308,6 +309,7 @@ private struct SessionListSection: View {
     let onExport: () -> Void
     let onImport: () -> Void
     let onOpenSettings: () -> Void
+    let onExampleImport: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -360,6 +362,15 @@ private struct SessionListSection: View {
                     self.onImport()
                 } label: {
                     Label("Import", systemImage: "square.and.arrow.down")
+                }
+                Menu {
+                    Button {
+                        self.onExampleImport()
+                    } label: {
+                        Label("Example Import", systemImage: "doc.badge.plus")
+                    }
+                } label: {
+                    Label("Help", systemImage: "questionmark.circle")
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -605,6 +616,19 @@ private extension ContentView {
             try? self.sessionStore.create(session)
         }
         self.pendingImportedSessions = []
+    }
+
+    func exportExampleImport() {
+        do {
+            let url = try CSVExportService().exportExampleImport()
+            let data = try Data(contentsOf: url)
+            self.exportDocument = BinaryFileDocument(data: data, contentType: .commaSeparatedText)
+            self.exportContentType = .commaSeparatedText
+            self.exportFilename = "Afterflow-Example-Import"
+            self.showingFileExporter = true
+        } catch {
+            self.exportError = error.localizedDescription
+        }
     }
 
     func clone(_ session: TherapeuticSession) -> TherapeuticSession {

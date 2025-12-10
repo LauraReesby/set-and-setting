@@ -85,6 +85,36 @@ struct CSVExportService: Sendable {
         return formatter
     }()
 
+    // MARK: - Example Generator
+
+    func exportExampleImport() throws -> URL {
+        let sessions = Self.exampleImportSessions()
+        return try self.export(sessions: sessions)
+    }
+
+    private static func exampleImportSessions() -> [TherapeuticSession] {
+        let treatments = PsychedelicTreatmentType.allCases
+        let administrations: [AdministrationMethod] = [.intravenous, .intramuscular, .oral, .nasal, .other]
+        var sessions: [TherapeuticSession] = []
+        let now = Date()
+
+        for (index, treatment) in treatments.enumerated() {
+            let admin = administrations[index % administrations.count]
+            let session = TherapeuticSession(
+                sessionDate: now.addingTimeInterval(TimeInterval(-index * 86400)),
+                treatmentType: treatment,
+                administration: admin,
+                intention: "Example \(treatment.displayName)",
+                moodBefore: 5,
+                moodAfter: 6,
+                reflections: "Example reflection for \(treatment.displayName)"
+            )
+            sessions.append(session)
+        }
+
+        return sessions
+    }
+
     enum CSVExportError: Error {
         case encodingFailed
     }
