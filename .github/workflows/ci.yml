@@ -66,6 +66,24 @@ jobs:
           echo "Using existing simulator: $DEVICE_UDID"
         fi
 
+        echo "Booting simulator $DEVICE_UDID..."
+        xcrun simctl boot "$DEVICE_UDID" || true
+        BOOT_TIMEOUT=180
+        START_TIME="$(date +%s)"
+        while true; do
+          STATE="$(xcrun simctl list --json devices | jq -r '.devices | to_entries[] | .value[] | select(.udid=="'"$DEVICE_UDID"'") | .state' | head -n1)"
+          if [ "$STATE" = "Booted" ]; then
+            echo "Simulator $DEVICE_UDID booted."
+            break
+          fi
+          NOW="$(date +%s)"
+          if [ $((NOW - START_TIME)) -ge $BOOT_TIMEOUT ]; then
+            echo "Simulator $DEVICE_UDID failed to boot within ${BOOT_TIMEOUT}s (last state: ${STATE:-unknown})"
+            exit 1
+          fi
+          sleep 5
+        done
+
         DESTINATION="platform=iOS Simulator,id=${DEVICE_UDID}"
         echo "Using runtime ${RUNTIME_VERSION} and destination $DESTINATION"
         echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
