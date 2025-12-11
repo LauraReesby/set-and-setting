@@ -26,7 +26,7 @@ Afterflow helps users:
 - Reflect on session experiences and insights
 - Maintain detailed records for clinical discussions
 - Understand patterns in mood and treatment response
-- Export data for sharing with healthcare providers (planned)
+- Export data for sharing with healthcare providers
 
 ## Screenshots
 
@@ -108,10 +108,17 @@ xcodebuild test -scheme Afterflow -destination 'platform=iOS Simulator,name=iPho
 ### Test Coverage
 
 Current test coverage includes:
-- **Music Link Providers**: Classification, oEmbed decoding, duration parsing, and link-only fallbacks for Apple Music/Podcasts and Bandcamp
 - **Model Tests**: TherapeuticSession entity validation, computed properties, data management
-- **ViewModel Tests**: Form validation, session detail reflections, and history list filters/sorts
-- **Service Tests**: CRUD operations, auto-save, draft recovery, validation
+- **ViewModel Tests**: Form validation, mood rating scales, reminder options, session list filters/sorts
+- **Service Tests**:
+  - SessionStore: CRUD operations, auto-save, draft recovery, validation
+  - MusicLinkMetadataService: Classification, oEmbed decoding, duration parsing, link-only fallbacks
+  - CSVImportService: CSV parsing, data validation, music link restoration
+  - CSVExportService: RFC-4180 compliant CSV generation, injection guards
+  - PDFExportService: PDF generation, pagination, formatting
+  - ReminderScheduler: Notification scheduling and cancellation
+  - ReflectionQueue: Queued reflection persistence and replay
+  - NotificationHandler: Deep link routing, session validation, reflection processing
 - **UI Tests**: Session form validation, keyboard navigation, mood sliders (VoiceOver + Dynamic Type), reflections editing, delete + undo workflow
 - **Performance Tests**: Large dataset filtering/fetching (1k+ sessions) and app launch instrumentation
 
@@ -147,10 +154,16 @@ Afterflow/
 ├── Services/
 │   ├── SessionStore.swift
 │   ├── ReminderScheduler.swift
-│   └── MusicLinkMetadataService.swift
+│   ├── ReflectionQueue.swift
+│   ├── NotificationHandler.swift
+│   ├── MusicLinkMetadataService.swift
+│   ├── CSVImportService.swift
+│   ├── CSVExportService.swift
+│   └── PDFExportService.swift
 ├── ViewModels/
 │   ├── FormValidation.swift
 │   ├── MoodRatingScale.swift
+│   ├── ReminderOption.swift
 │   └── SessionListViewModel.swift
 ├── Views/
 │   ├── ContentView.swift
@@ -169,9 +182,23 @@ AfterflowTests/
 ├── Helpers/
 │   └── SessionFixtureFactory.swift
 ├── ModelTests/
+│   └── TherapeuticSessionTests.swift
 ├── ServiceTests/
+│   ├── SessionStoreTests.swift
+│   ├── ReminderSchedulerTests.swift
+│   ├── ReflectionQueueTests.swift
+│   ├── NotificationHandlerTests.swift
+│   ├── MusicLinkMetadataServiceTests.swift
+│   ├── CSVImportServiceTests.swift
+│   ├── CSVExportServiceTests.swift
+│   └── PDFExportServiceTests.swift
 ├── ViewModelTests/
+│   ├── FormValidationTests.swift
+│   ├── MoodRatingScaleTests.swift
+│   ├── ReminderOptionTests.swift
+│   └── SessionListViewModelTests.swift
 ├── Performance/
+│   └── SessionListPerformanceTests.swift
 └── UITests/
 
 specs/
@@ -239,6 +266,107 @@ Afterflow follows a clean architecture pattern optimized for SwiftUI:
 - Open the Sessions list, tap **Export**, choose CSV or PDF, and optionally filter by date range or treatment type.
 - Exports run locally and present the iOS file exporter/share sheet; temporary files are cleaned after completion.
 - CSVs use RFC‑4180 quoting and injection guards; PDFs include session summaries with optional cover pages.
+
+## CSV Import Guide
+
+Afterflow supports importing session data from CSV files, making it easy to:
+- Migrate data from other apps or spreadsheets
+- Bulk-add sessions from clinical records
+- Restore previously exported data
+
+### CSV Format Requirements
+
+The CSV must be **UTF-8 encoded** with the following header row (exact column names required):
+
+```
+Date,Treatment Type,Administration,Intention,Mood Before,Mood After,Reflections,Music Link URL
+```
+
+### Column Specifications
+
+| Column | Format | Valid Values | Example |
+|--------|--------|--------------|---------|
+| **Date** | Medium date + short time (en_US_POSIX) | `MMM d, yyyy 'at' h:mm a` | `Dec 10, 2024 at 2:30 PM` |
+| **Treatment Type** | Text | `Psilocybin`, `LSD`, `DMT`, `MDMA`, `Ketamine`, `Ayahuasca`, `Mescaline`, `Cannabis`, `Other` | `Psilocybin` |
+| **Administration** | Text | `Intravenous (IV)`, `Intramuscular (IM)`, `Oral`, `Nasal`, `Other` | `Oral` |
+| **Intention** | Text | Any non-empty string | `To explore creativity` |
+| **Mood Before** | Integer | 1-10 | `5` |
+| **Mood After** | Integer | 1-10 | `8` |
+| **Reflections** | Text | Any string (can be empty) | `Felt peaceful and connected` |
+| **Music Link URL** | URL | Any valid URL or empty | `https://open.spotify.com/playlist/...` |
+
+### Creating a CSV Template
+
+#### Option 1: Use the Built-in Example
+The quickest way to get a valid template:
+1. Open Afterflow
+2. Tap **Menu → Help → Example Import**
+3. Save the example CSV file
+4. Open it in your preferred editor and modify as needed
+
+#### Option 2: Export Existing Data
+If you already have sessions in Afterflow:
+1. Create one or two sample sessions
+2. Export them as CSV
+3. Use the exported file as your template
+
+#### Option 3: Create Manually
+Create a text file with a `.csv` extension and use this template:
+
+```csv
+Date,Treatment Type,Administration,Intention,Mood Before,Mood After,Reflections,Music Link URL
+Dec 10, 2024 at 2:30 PM,Psilocybin,Oral,To explore creativity and connection,5,8,"Felt peaceful, connected to nature. Insights about relationships.",https://open.spotify.com/playlist/37i9dQZF1DX4dyzvuaRJ0n
+Dec 3, 2024 at 10:00 AM,Ketamine,Intravenous (IV),Process grief and find acceptance,4,7,Gentle experience. Worked through difficult emotions.,
+Nov 15, 2024 at 6:45 PM,MDMA,Oral,Healing trauma with therapist,3,9,"Breakthrough session. Finally felt safe enough to process childhood memories. So grateful.",https://www.youtube.com/watch?v=dQw4w9WgXcQ
+```
+
+### Important Notes
+
+1. **Date Format**: Must match exactly `MMM d, yyyy 'at' h:mm a` (e.g., `Dec 10, 2024 at 2:30 PM`)
+2. **Quoted Fields**: Fields containing commas, quotes, or newlines must be wrapped in double quotes (`"`)
+3. **Escaped Quotes**: Use `""` (two double quotes) to include a quote character within a quoted field
+4. **Music Links**:
+   - Can be any valid URL (Spotify, YouTube, Apple Music, etc.)
+   - Leave empty if no music link
+   - The app will automatically classify the provider and fetch metadata for supported services
+5. **Excel/Google Sheets**: If creating in a spreadsheet app:
+   - Format the Date column exactly as shown
+   - Save/Export as CSV (UTF-8)
+   - Verify the exported file matches the expected format
+
+### CSV Injection Protection
+
+Afterflow automatically protects against CSV injection attacks:
+- Fields starting with `=`, `+`, `-`, or `@` are prefixed with `'` during export
+- When importing, these prefixes are stripped automatically
+- You don't need to manually handle this unless creating files outside of Afterflow exports
+
+### Using the Import Feature
+
+1. Prepare your CSV file following the format above
+2. Transfer the file to your iOS device (via AirDrop, Files app, email, etc.)
+3. Open Afterflow
+4. Navigate to Settings → Import Data
+5. Select your CSV file
+6. Review the import summary
+7. Confirm to add the sessions
+
+### Troubleshooting
+
+**"Invalid header" error:**
+- Verify the header row exactly matches: `Date,Treatment Type,Administration,Intention,Mood Before,Mood After,Reflections,Music Link URL`
+- Check for extra spaces or typos in column names
+
+**"Invalid row" error:**
+- Check the date format matches exactly (Medium date + short time)
+- Verify Treatment Type and Administration values match the valid options
+- Ensure Mood Before/After are integers between 1-10
+- Make sure all required fields (Date through Mood After) have values
+
+**"Data is not UTF-8 encoded" error:**
+- Re-save your CSV file with UTF-8 encoding
+- In Excel: Save As → CSV UTF-8
+- In Google Sheets: Download → CSV automatically uses UTF-8
 
 ## Contributing
 
