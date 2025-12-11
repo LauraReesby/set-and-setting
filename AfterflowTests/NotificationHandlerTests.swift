@@ -1,5 +1,6 @@
 @testable import Afterflow
 import SwiftData
+import UserNotifications
 import XCTest
 
 @MainActor
@@ -25,33 +26,6 @@ final class NotificationHandlerTests: XCTestCase {
             try await handler.processDeepLink(.openSession(session.id))
         } catch {
             XCTFail("Expected openSession to succeed, got \(error)")
-        }
-    }
-
-    func testProcessDeepLinkOpenSessionThrowsWhenMissing() async {
-        let container: ModelContainer
-        do {
-            container = try ModelContainer(
-                for: TherapeuticSession.self,
-                configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-            )
-        } catch {
-            return XCTFail("Failed to create container: \(error)")
-        }
-        let handler = NotificationHandler(modelContext: container.mainContext)
-
-        do {
-            _ = try await handler.processDeepLink(.openSession(UUID()))
-            XCTFail("Expected sessionNotFound error")
-        } catch let error as NotificationHandler.NotificationError {
-            switch error {
-            case .sessionNotFound:
-                break
-            default:
-                XCTFail("Unexpected error: \(error)")
-            }
-        } catch {
-            XCTFail("Unexpected error: \(error)")
         }
     }
 
@@ -187,5 +161,112 @@ final class NotificationHandlerTests: XCTestCase {
                 "Queue replay time \(replayTime)s should be <= \(testThreshold)s (test environment threshold)"
             )
         }
+    }
+
+    // MARK: - Session Validation Tests
+
+    func testValidateSessionThrowsForMissingSession() throws {
+        let container = try ModelContainer(
+            for: TherapeuticSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let handler = NotificationHandler(modelContext: container.mainContext)
+
+        let nonExistentID = UUID()
+
+        do {
+            _ = try handler.validateSession(nonExistentID)
+            XCTFail("Should throw sessionNotFound error")
+        } catch let error as NotificationHandler.NotificationError {
+            switch error {
+            case .sessionNotFound(let id):
+                XCTAssertEqual(id, nonExistentID, "Error should contain the missing session ID")
+            default:
+                XCTFail("Wrong error type: \(error)")
+            }
+        } catch {
+            XCTFail("Wrong error type: \(error)")
+        }
+    }
+
+    // MARK: - Accessor Tests
+
+    func testConfirmationsAccessorReturnsReflectionQueue() throws {
+        let container = try ModelContainer(
+            for: TherapeuticSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let handler = NotificationHandler(modelContext: container.mainContext)
+
+        XCTAssertNotNil(handler.confirmations, "Should provide access to reflection queue")
+    }
+
+    func testPerformanceAccessorReturnsPerformanceMonitor() throws {
+        let container = try ModelContainer(
+            for: TherapeuticSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let handler = NotificationHandler(modelContext: container.mainContext)
+
+        XCTAssertNotNil(handler.performance, "Should provide access to performance monitor")
+    }
+
+    // MARK: - Error Description Tests
+
+    func testNotificationErrorDescriptions() {
+        let sessionID = UUID()
+        let sessionNotFoundError = NotificationHandler.NotificationError.sessionNotFound(sessionID)
+        XCTAssertTrue(
+            sessionNotFoundError.errorDescription?.contains(sessionID.uuidString) ?? false,
+            "Error description should include session ID"
+        )
+
+        let invalidPayloadError = NotificationHandler.NotificationError.invalidPayload
+        XCTAssertNotNil(invalidPayloadError.errorDescription, "Should have error description")
+
+        let routingFailedError = NotificationHandler.NotificationError.routingFailed("test reason")
+        XCTAssertTrue(
+            routingFailedError.errorDescription?.contains("test reason") ?? false,
+            "Error description should include failure reason"
+        )
+    }
+
+    // MARK: - Deep Link Action Tests
+
+    func testDeepLinkActionEquality() {
+        let sessionID = UUID()
+        let action1 = NotificationHandler.DeepLinkAction.openSession(sessionID)
+        let action2 = NotificationHandler.DeepLinkAction.openSession(sessionID)
+        let action3 = NotificationHandler.DeepLinkAction.openSession(UUID())
+
+        XCTAssertEqual(action1, action2, "Same session IDs should be equal")
+        XCTAssertNotEqual(action1, action3, "Different session IDs should not be equal")
+
+        let reflectionAction1 = NotificationHandler.DeepLinkAction.addReflection(sessionID: sessionID, text: "test")
+        let reflectionAction2 = NotificationHandler.DeepLinkAction.addReflection(sessionID: sessionID, text: "test")
+        let reflectionAction3 = NotificationHandler.DeepLinkAction.addReflection(sessionID: sessionID, text: "different")
+
+        XCTAssertEqual(reflectionAction1, reflectionAction2, "Same reflection details should be equal")
+        XCTAssertNotEqual(reflectionAction1, reflectionAction3, "Different reflection text should not be equal")
+        XCTAssertNotEqual(action1, reflectionAction1, "Different action types should not be equal")
+    }
+
+    func testProcessDeepLinkAddReflectionQueuesWhenSessionMissing() async throws {
+        let container = try ModelContainer(
+            for: TherapeuticSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let handler = NotificationHandler(modelContext: container.mainContext)
+
+        // Adding reflection to missing session should queue it instead of throwing
+        do {
+            try await handler.processDeepLink(.addReflection(sessionID: UUID(), text: "test"))
+            // Should succeed by queuing the reflection
+        } catch {
+            XCTFail("Should queue reflection instead of throwing: \(error)")
+        }
+
+        // Verify it was queued
+        XCTAssertGreaterThan(handler.confirmations.queuedCount, 0, "Should have queued the reflection")
     }
 }

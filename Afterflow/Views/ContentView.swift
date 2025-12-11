@@ -16,11 +16,15 @@ struct ContentView: View {
     @State private var listViewModel = SessionListViewModel()
 
     @State private var selectedSessionID: UUID?
+    @State private var navigationPath = NavigationPath()
     @State private var deepLinkAlert: (title: String, message: String)?
 
     @State private var recentlyDeleted: (session: TherapeuticSession, index: Int)?
     @State private var showUndoBanner = false
     @State private var undoTask: Task<Void, Never>?
+
+    @State private var sessionPendingDeletion: (session: TherapeuticSession, index: Int)?
+    @State private var showingDeleteConfirmation = false
 
     @State private var showingExportSheet = false
     @State private var isExporting = false
@@ -35,18 +39,22 @@ struct ContentView: View {
     @State private var pendingImportedSessions: [TherapeuticSession] = []
     @State private var showingImportConfirmation = false
     @State private var settingsError: String?
+    @State private var debugNotificationScheduled = false
 
     var body: some View {
         NavigationSplitView {
             SessionListSection(
                 sessions: self.filteredSessions,
                 listViewModel: self.$listViewModel,
+                navigationPath: self.$navigationPath,
+                sessionStore: self.sessionStore,
                 onDelete: self.deleteSessions,
                 onAdd: { self.showingSessionForm = true },
                 onExport: { self.showingExportSheet = true },
                 onImport: { self.showingImportPicker = true },
                 onOpenSettings: { self.openAppSettings() },
-                onExampleImport: { self.exportExampleImport() }
+                onExampleImport: { self.exportExampleImport() },
+                onDebugNotification: { Task { await self.scheduleDebugNotification() } }
             )
         } detail: {
             if let sessionID = selectedSessionID,
@@ -68,6 +76,20 @@ struct ContentView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text(self.deepLinkAlert?.message ?? "")
+        }
+        .alert("Delete Session", isPresented: self.$showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                self.confirmDelete()
+            }
+            .accessibilityIdentifier("confirmDeleteButton")
+            Button("Cancel", role: .cancel) {
+                self.sessionPendingDeletion = nil
+            }
+            .accessibilityIdentifier("cancelDeleteButton")
+        } message: {
+            if let pending = sessionPendingDeletion {
+                Text("Are you sure you want to delete this \(pending.session.treatmentType.displayName) session from \(pending.session.sessionDate.formatted(date: .abbreviated, time: .omitted))? This action can be undone within 10 seconds.")
+            }
         }
         .sheet(isPresented: self.$showingSessionForm) {
             NavigationStack { SessionFormView() }
@@ -146,15 +168,41 @@ struct ContentView: View {
             Text(self.settingsError ?? "")
         }
         .overlay(alignment: .top) {
-            if !self.notificationHandler.confirmations.recentConfirmations.isEmpty {
-                VStack(spacing: 8) {
+            VStack(spacing: 8) {
+                #if DEBUG
+                if self.debugNotificationScheduled {
+                    HStack(spacing: 8) {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundColor(.orange)
+                        Text("Test notification scheduled (5 seconds)")
+                            .font(.footnote)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(.regularMaterial)
+                            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .strokeBorder(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                }
+                #endif
+
+                if !self.notificationHandler.confirmations.recentConfirmations.isEmpty {
                     ForEach(self.notificationHandler.confirmations.recentConfirmations, id: \.self) { message in
                         ReflectionConfirmationBanner(message: message)
                     }
                 }
-                .padding(.top, 8)
-                .animation(.easeInOut(duration: 0.3), value: self.notificationHandler.confirmations.recentConfirmations)
             }
+            .padding(.top, 8)
+            .animation(.easeInOut(duration: 0.3), value: self.notificationHandler.confirmations.recentConfirmations)
+            .animation(.easeInOut(duration: 0.3), value: self.debugNotificationScheduled)
         }
     }
 
@@ -163,13 +211,20 @@ struct ContentView: View {
     }
 
     private func deleteSessions(offsets: IndexSet) {
+        guard let index = offsets.first else { return }
+        let session = self.filteredSessions[index]
+        self.sessionPendingDeletion = (session, index)
+        self.showingDeleteConfirmation = true
+    }
+
+    private func confirmDelete() {
+        guard let pending = sessionPendingDeletion else { return }
         withAnimation {
-            guard let index = offsets.first else { return }
-            let session = self.filteredSessions[index]
-            let snapshot = clone(session)
-            try? self.sessionStore.delete(session)
-            self.scheduleUndo(for: snapshot, originalIndex: index)
+            let snapshot = clone(pending.session)
+            try? self.sessionStore.delete(pending.session)
+            self.scheduleUndo(for: snapshot, originalIndex: pending.index)
         }
+        self.sessionPendingDeletion = nil
     }
 
     private func scheduleUndo(for session: TherapeuticSession, originalIndex: Int) {
@@ -244,6 +299,8 @@ struct ContentView: View {
                 if case let .openSession(sessionID) = action {
                     await MainActor.run {
                         self.selectedSessionID = sessionID
+                        self.navigationPath = NavigationPath()
+                        self.navigationPath.append(sessionID)
                         self.notificationHandler.clearPendingDeepLink()
                     }
                 } else {
@@ -304,26 +361,39 @@ private struct ExportResult {
 private struct SessionListSection: View {
     let sessions: [TherapeuticSession]
     @Binding var listViewModel: SessionListViewModel
+    @Binding var navigationPath: NavigationPath
+    let sessionStore: SessionStore
     let onDelete: (IndexSet) -> Void
     let onAdd: () -> Void
     let onExport: () -> Void
     let onImport: () -> Void
     let onOpenSettings: () -> Void
     let onExampleImport: () -> Void
+    let onDebugNotification: () -> Void
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            List {
+            NavigationStack(path: self.$navigationPath) {
+                List {
                 ForEach(Array(self.sessions.enumerated()), id: \.element.id) { index, session in
                     ZStack(alignment: .leading) {
                         SessionRowView(session: session, dateText: session.sessionDate.relativeSessionLabel)
                             .accessibilityIdentifier("sessionRow-\(session.id.uuidString)")
-                        NavigationLink(destination: SessionDetailView(session: session)) {
+                        NavigationLink(value: session.id) {
                             EmptyView()
                         }
-                        .opacity(0.01)
-                        .buttonStyle(.plain)
-                        .accessibilityHidden(true)
+                        .opacity(0)
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            self.onDelete(IndexSet(integer: index))
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    } preview: {
+                        SessionDetailView(session: session)
+                            .frame(width: 350, height: 600)
+                            .environment(self.sessionStore)
                     }
                     .listRowSeparator(index == 0 ? .hidden : .visible, edges: .top)
                     .listRowSeparator(.visible, edges: .bottom)
@@ -339,6 +409,13 @@ private struct SessionListSection: View {
             .listStyle(.plain)
             .toolbarBackground(.visible, for: .automatic)
             .scrollDismissesKeyboard(.immediately)
+            .navigationDestination(for: UUID.self) { sessionID in
+                if let session = self.sessions.first(where: { $0.id == sessionID }) {
+                    SessionDetailView(session: session)
+                        .environment(self.sessionStore)
+                }
+            }
+            }
 
             BottomControls(listViewModel: self.$listViewModel, onAdd: self.onAdd)
         }
@@ -372,6 +449,15 @@ private struct SessionListSection: View {
                 } label: {
                     Label("Help", systemImage: "questionmark.circle")
                 }
+                #if DEBUG
+                Divider()
+                Button {
+                    self.onDebugNotification()
+                } label: {
+                    Label("Test Notification (5s)", systemImage: "bell.badge")
+                }
+                .disabled(self.sessions.isEmpty)
+                #endif
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.title3)
@@ -559,6 +645,21 @@ private struct SessionRowView: View {
 }
 
 private extension ContentView {
+    func scheduleDebugNotification() async {
+        #if DEBUG
+        guard let session = allSessions.first else { return }
+
+        let scheduler = ReminderScheduler()
+        do {
+            _ = try await scheduler.scheduleImmediateTestNotification(for: session)
+            self.debugNotificationScheduled = true
+
+            try? await Task.sleep(for: .seconds(6))
+            self.debugNotificationScheduled = false
+        } catch {}
+        #endif
+    }
+
     func openAppSettings() {
         #if canImport(UIKit)
             guard let url = URL(string: UIApplication.openSettingsURLString) else {

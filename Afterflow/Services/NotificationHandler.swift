@@ -53,7 +53,6 @@ final class NotificationHandler: NSObject, ObservableObject, UNUserNotificationC
         guard let sessionIDString = userInfo["sessionID"] as? String,
               let sessionID = UUID(uuidString: sessionIDString)
         else {
-            print("⚠️ Notification missing valid sessionID")
             return
         }
 
@@ -63,11 +62,9 @@ final class NotificationHandler: NSObject, ObservableObject, UNUserNotificationC
         case "QUICK_REFLECTION_ACTION":
             if let textResponse = response as? UNTextInputNotificationResponse {
                 self.pendingDeepLink = .addReflection(sessionID: sessionID, text: textResponse.userText)
-            } else {
-                print("⚠️ Expected text input response for reflection action")
             }
         default:
-            print("⚠️ Unknown notification action: \(response.actionIdentifier)")
+            break
         }
     }
 

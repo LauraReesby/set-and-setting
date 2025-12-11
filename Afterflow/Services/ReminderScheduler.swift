@@ -132,4 +132,48 @@ final class ReminderScheduler {
     func cancelReminder(for session: TherapeuticSession) {
         self.notificationCenter.removePendingNotificationRequests(withIdentifiers: [self.identifier(for: session)])
     }
+
+    // MARK: - Debug Helpers
+
+    /// Schedules an immediate test notification for debugging purposes.
+    /// The notification will fire 5 seconds after calling this method.
+    ///
+    /// - Parameter session: The session to associate with the test notification
+    /// - Returns: The scheduled notification date
+    func scheduleImmediateTestNotification(for session: TherapeuticSession) async throws -> Date {
+        await self.requestPermissionIfNeeded()
+        let authStatus = await notificationCenter.authorizationStatus()
+        guard authStatus == .authorized || authStatus == .provisional else {
+            throw ReminderError.permissionDenied
+        }
+
+        let scheduledDate = Date().addingTimeInterval(5)
+        let identifier = "test_\(session.id.uuidString)_\(UUID().uuidString)"
+
+        let content = UNMutableNotificationContent()
+        content.title = "🧪 Test Notification"
+        content.body = "Tap to open session or use 'Add Reflection' to test quick actions."
+        content.sound = .default
+        content.categoryIdentifier = "THERAPEUTIC_SESSION_REMINDER"
+        content.userInfo = ["sessionID": session.id.uuidString]
+        content.accessibilityLabel = "Test reflection reminder"
+
+        let trigger = UNTimeIntervalNotificationTrigger(
+            timeInterval: 5,
+            repeats: false
+        )
+
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: trigger
+        )
+
+        do {
+            try await self.notificationCenter.add(request)
+            return scheduledDate
+        } catch {
+            throw ReminderError.schedulingFailed(error)
+        }
+    }
 }

@@ -3,12 +3,12 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-@main
-struct AfterflowApp: App {
-    private static let sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            TherapeuticSession.self
-        ])
+@MainActor
+class AppDelegate: NSObject, UIApplicationDelegate {
+    static var shared: AppDelegate!
+
+    lazy var sharedModelContainer: ModelContainer = {
+        let schema = Schema([TherapeuticSession.self])
         let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: isUITesting)
 
@@ -23,34 +23,56 @@ struct AfterflowApp: App {
         }
     }()
 
-    private let sessionStore: SessionStore = .init(modelContext: Self.sharedModelContainer.mainContext)
-    private let notificationHandler = NotificationHandler(modelContext: Self.sharedModelContainer.mainContext)
+    lazy var sessionStore: SessionStore = {
+        SessionStore(modelContext: self.sharedModelContainer.mainContext, owningContainer: self.sharedModelContainer)
+    }()
+
+    lazy var notificationHandler: NotificationHandler = {
+        NotificationHandler(modelContext: self.sharedModelContainer.mainContext)
+    }()
+
+    override init() {
+        super.init()
+        AppDelegate.shared = self
+    }
+
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        let disableNotifications = ProcessInfo.processInfo.arguments.contains("-disable-notifications")
+
+        if !disableNotifications {
+            UNUserNotificationCenter.current().delegate = self.notificationHandler
+        }
+
+        return true
+    }
+}
+
+@main
+struct AfterflowApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     private let isUITesting: Bool = ProcessInfo.processInfo.arguments.contains("-ui-testing")
 
     init() {
         if ProcessInfo.processInfo.arguments.contains("-ui-musiclink-fixtures") {
-            self.seedMusicLinkFixtures()
-        }
-
-        if !self.isUITesting {
-            UNUserNotificationCenter.current().delegate = self.notificationHandler
+            let delegate = self.appDelegate
+            DispatchQueue.main.async {
+                let descriptor = FetchDescriptor<TherapeuticSession>()
+                let existingSessions = (try? delegate.sharedModelContainer.mainContext.fetch(descriptor)) ?? []
+                guard existingSessions.isEmpty else { return }
+                SeedDataFactory.makeSeedSessions().forEach { try? delegate.sessionStore.create($0) }
+            }
         }
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .modelContainer(Self.sharedModelContainer)
-                .environment(self.sessionStore)
-                .environmentObject(self.notificationHandler)
+                .modelContainer(self.appDelegate.sharedModelContainer)
+                .environment(self.appDelegate.sessionStore)
+                .environmentObject(self.appDelegate.notificationHandler)
         }
-    }
-
-    private func seedMusicLinkFixtures() {
-        guard self.isUITesting else { return }
-        let descriptor = FetchDescriptor<TherapeuticSession>()
-        let existingSessions = (try? Self.sharedModelContainer.mainContext.fetch(descriptor)) ?? []
-        guard existingSessions.isEmpty else { return }
-        SeedDataFactory.makeSeedSessions().forEach { try? self.sessionStore.create($0) }
     }
 }

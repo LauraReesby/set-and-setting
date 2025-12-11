@@ -1,0 +1,43 @@
+{
+  "configurations" : [
+    {
+      "id" : "2AD37313-253B-44EE-80D0-78DE898176C5",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-ui-testing"
+      }
+    ],
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Afterflow.xcodeproj",
+      "identifier" : "82E012E22EBC3CE600A7B115",
+      "name" : "AfterflowUITests"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Afterflow.xcodeproj",
+        "identifier" : "82E012D82EBC3CE600A7B115",
+        "name" : "AfterflowTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Afterflow.xcodeproj",
+        "identifier" : "82E012E22EBC3CE600A7B115",
+        "name" : "AfterflowUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
