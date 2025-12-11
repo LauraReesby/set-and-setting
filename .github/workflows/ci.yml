@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   pull_request:
@@ -25,7 +26,7 @@ jobs:
         xcodebuild build \
           -project Afterflow.xcodeproj \
           -scheme Afterflow \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
           -quiet
 
     - name: Run Unit Tests
@@ -33,7 +34,7 @@ jobs:
         xcodebuild test \
           -project Afterflow.xcodeproj \
           -scheme Afterflow \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
           -only-testing:AfterflowTests \
           -enableCodeCoverage YES
 
@@ -42,5 +43,5 @@ jobs:
         xcodebuild test \
           -project Afterflow.xcodeproj \
           -scheme Afterflow \
-          -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+          -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.1' \
           -only-testing:AfterflowUITests

@@ -1,6 +1,7 @@
 name: SwiftFormat
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - '**.swift'
