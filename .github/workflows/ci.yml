@@ -24,18 +24,27 @@ jobs:
     - name: Select available iPhone simulator
       id: sim
       run: |
-        SIM_JSON="$(xcrun simctl list --json devices available)"
-        RUNTIME_KEY="$(echo "$SIM_JSON" | jq -r '[.devices | keys[] | select(test("iOS"))] | sort | last')"
-        if [ -z "$RUNTIME_KEY" ] || [ "$RUNTIME_KEY" = "null" ]; then
-          echo "No iOS runtimes found"; exit 1
+        set -eo pipefail
+        RUNTIME="$(xcrun simctl list runtimes --json | jq -r '[.runtimes[] | select((.platform? // .platformName) == "iOS" and (.isAvailable == true or .availability == "(available)")) | {id: .identifier, version: .version}] | sort_by(.version | split(".") | map(tonumber)) | last')"
+        RUNTIME_ID="$(echo "$RUNTIME" | jq -r '.id')"
+        RUNTIME_VERSION="$(echo "$RUNTIME" | jq -r '.version')"
+        if [ -z "$RUNTIME_ID" ] || [ "$RUNTIME_ID" = "null" ]; then
+          echo "No available iOS runtimes found"; exit 1
         fi
-        DEVICE_NAME="$(echo "$SIM_JSON" | jq -r --arg rt "$RUNTIME_KEY" '.devices[$rt][] | select(.name | startswith("iPhone")) | .name' | head -n1)"
-        if [ -z "$DEVICE_NAME" ] || [ "$DEVICE_NAME" = "null" ]; then
-          echo "No iPhone simulators found for runtime $RUNTIME_KEY"; exit 1
+
+        DEVICE_JSON="$(xcrun simctl list --json devices "$RUNTIME_ID")"
+        DEVICE_UDID="$(echo "$DEVICE_JSON" | jq -r '.devices[]? | map(select(.isAvailable == true and (.name | startswith("iPhone")))) | .[0].udid')"
+
+        if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
+          DEVICE_TYPE="$(xcrun simctl list devicetypes --json | jq -r '.devicetypes[] | select(.name | startswith("iPhone")) | .identifier' | head -n1)"
+          if [ -z "$DEVICE_TYPE" ]; then
+            echo "No iPhone device types found"; exit 1
+          fi
+          DEVICE_UDID="$(xcrun simctl create "CI-iPhone" "$DEVICE_TYPE" "$RUNTIME_ID")"
         fi
-        OS_VERSION="$(echo "$RUNTIME_KEY" | sed 's/.*iOS-//; s/-/./g')"
-        DESTINATION="platform=iOS Simulator,name=${DEVICE_NAME},OS=${OS_VERSION}"
-        echo "Using destination: $DESTINATION"
+
+        DESTINATION="platform=iOS Simulator,id=${DEVICE_UDID}"
+        echo "Using runtime $RUNTIME_VERSION and destination $DESTINATION"
         echo "destination=$DESTINATION" >> "$GITHUB_OUTPUT"
 
     - name: Build
