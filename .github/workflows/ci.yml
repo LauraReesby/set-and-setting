@@ -17,10 +17,16 @@ jobs:
 
     - name: Select Xcode version
       run: |
-        if [ -d /Applications/Xcode_16.4.app ]; then
-          sudo xcode-select -s /Applications/Xcode_16.4.app
+        if [ -d /Applications/Xcode_26.1.1.app ]; then
+          sudo xcode-select -s /Applications/Xcode_26.1.1.app
+        elif [ -d /Applications/Xcode_26.1.app ]; then
+          sudo xcode-select -s /Applications/Xcode_26.1.app
+        elif [ -d /Applications/Xcode_26.0.1.app ]; then
+          sudo xcode-select -s /Applications/Xcode_26.0.1.app
+        elif [ -d /Applications/Xcode_26.0.app ]; then
+          sudo xcode-select -s /Applications/Xcode_26.0.app
         else
-          echo "Xcode 16.4 not found on runner"; exit 1
+          echo "Xcode 26.x not found on runner"; exit 1
         fi
 
     - name: Show Xcode version
@@ -36,45 +42,27 @@ jobs:
         echo "== Available devices (iOS) =="
         xcrun simctl list devices available
 
-        # Select iOS 26 runtime (prefers 26.1, then 26.0).
-        RUNTIME_ID="$(xcrun simctl list runtimes --json | jq -r '.runtimes[] | select(.identifier == "com.apple.CoreSimulator.SimRuntime.iOS-26-1" and (.isAvailable == true or .availability == "(available)")) | .identifier' | head -n1)"
-        if [ -z "$RUNTIME_ID" ] || [ "$RUNTIME_ID" = "null" ]; then
-          RUNTIME_ID="$(xcrun simctl list runtimes --json | jq -r '.runtimes[] | select(.identifier == "com.apple.CoreSimulator.SimRuntime.iOS-26-0" and (.isAvailable == true or .availability == "(available)")) | .identifier' | head -n1)"
-        fi
-        if [ -z "$RUNTIME_ID" ] || [ "$RUNTIME_ID" = "null" ]; then
-          echo "No iOS 26 runtimes available"; exit 1
-        fi
-        RUNTIME_VERSION="$(echo "$RUNTIME_ID" | sed 's/.*iOS-//; s/-/./g')"
-        echo "Selected runtime: $RUNTIME_ID ($RUNTIME_VERSION)"
+        TARGET_RUNTIME="com.apple.CoreSimulator.SimRuntime.iOS-26-1"
+        TARGET_NAME="iPhone 17 Pro"
+        TARGET_OS="26.1"
 
-        # Prefer iPhone 17 Pro; else first iPhone 17; else any iPhone for the runtime.
-        DEVICE_UDID="$(xcrun simctl list --json devices "$RUNTIME_ID" | jq -r '.devices[]? | map(select(.isAvailable == true and .name == "iPhone 17 Pro")) | .[0].udid')"
-        if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
-          DEVICE_UDID="$(xcrun simctl list --json devices "$RUNTIME_ID" | jq -r '.devices[]? | map(select(.isAvailable == true and (.name | startswith("iPhone 17")))) | .[0].udid')"
+        # Verify runtime exists and is available.
+        RUNTIME_OK="$(xcrun simctl list runtimes --json | jq -r --arg rt "$TARGET_RUNTIME" '.runtimes[] | select(.identifier == $rt and (.isAvailable == true or .availability == "(available)")) | .identifier')"
+        if [ -z "$RUNTIME_OK" ] || [ "$RUNTIME_OK" = "null" ]; then
+          echo "Runtime $TARGET_RUNTIME not available on runner"; exit 1
         fi
+        echo "Selected runtime: $TARGET_RUNTIME ($TARGET_OS)"
+
+        # Find an existing device with the requested name under the target runtime.
+        DEVICE_UDID="$(xcrun simctl list --json devices "$TARGET_RUNTIME" | jq -r --arg name "$TARGET_NAME" '.devices[]? | map(select(.isAvailable == true and .name == $name)) | .[0].udid')"
         if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
-          DEVICE_UDID="$(xcrun simctl list --json devices "$RUNTIME_ID" | jq -r '.devices[]? | map(select(.isAvailable == true and (.name | startswith("iPhone")))) | .[0].udid')"
+          DEVICE_UDID="$(xcrun simctl list --json devices "$TARGET_RUNTIME" | jq -r '.devices[]? | map(select(.isAvailable == true and (.name | startswith("iPhone")))) | .[0].udid')"
         fi
 
         if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
-          DEVICE_TYPE="$(xcrun simctl list devicetypes --json | jq -r '.devicetypes[] | select(.name == "iPhone 17 Pro") | .identifier' | head -n1)"
-          if [ -z "$DEVICE_TYPE" ] || [ "$DEVICE_TYPE" = "null" ]; then
-            DEVICE_TYPE="$(xcrun simctl list devicetypes --json | jq -r '.devicetypes[] | select(.name | startswith("iPhone 17")) | .identifier' | head -n1)"
-          fi
-          if [ -z "$DEVICE_TYPE" ] || [ "$DEVICE_TYPE" = "null" ]; then
-            DEVICE_TYPE="$(xcrun simctl list devicetypes --json | jq -r '.devicetypes[] | select(.name | startswith("iPhone")) | .identifier' | head -n1)"
-          fi
-          if [ -z "$DEVICE_TYPE" ] || [ "$DEVICE_TYPE" = "null" ]; then
-            echo "No iPhone device types found"; exit 1
-          fi
-          DEVICE_UDID="$(xcrun simctl create "CI-iPhone" "$DEVICE_TYPE" "$RUNTIME_ID")"
-          if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
-            echo "Failed to create simulator for runtime $RUNTIME_ID"; exit 1
-          fi
-          echo "Created simulator: $DEVICE_UDID ($DEVICE_TYPE)"
-        else
-          echo "Using existing simulator: $DEVICE_UDID"
+          echo "No available simulators found for $TARGET_RUNTIME"; exit 1
         fi
+        echo "Using simulator UDID: $DEVICE_UDID"
 
         echo "Booting simulator $DEVICE_UDID..."
         xcrun simctl boot "$DEVICE_UDID" || true
