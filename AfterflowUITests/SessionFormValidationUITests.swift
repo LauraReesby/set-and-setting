@@ -61,6 +61,30 @@ final class SessionFormValidationUITests: XCTestCase {
         XCTAssertFalse(preview.waitForExistence(timeout: 1), "Preview should disappear after removing link")
     }
 
+    func testInlineValidationOutlineUpdates() throws {
+        let app = self.makeApp()
+        self.presentSessionForm(app)
+
+        guard let intentionField = app.waitForTextInput("intentionField") else {
+            XCTFail("Intention field should exist")
+            return
+        }
+
+        // On launch, intention is empty; the field should be enabled but not hittable for submit.
+        XCTAssertTrue(intentionField.waitForExistence(timeout: 2))
+
+        // Enter valid text to clear validation outline state.
+        intentionField.tap()
+        intentionField.typeText("Grounding intention")
+
+        // Expect the field to remain hittable and the Save button to enable after debounce.
+        let saveButton = app.navigationBars["New Session"].buttons["Save"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 2), "Save button should exist")
+        let enabledPredicate = NSPredicate(format: "isEnabled == true")
+        let enabledExpectation = XCTNSPredicateExpectation(predicate: enabledPredicate, object: saveButton)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabledExpectation], timeout: 3), .completed, "Save should enable after valid input")
+    }
+
     private func presentSessionForm(_ app: XCUIApplication) {
         app.launch()
 

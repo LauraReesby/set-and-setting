@@ -403,7 +403,7 @@ Afterflow collects **zero** personal data. All information stays on your device.
 
 ## License
 
-[License information to be added]
+CC0 1.0 Universal
 
 ---
 

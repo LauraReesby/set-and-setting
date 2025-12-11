@@ -46,6 +46,24 @@ struct FormValidationTests {
         #expect(result.isValid == true)
     }
 
+    @Test("Date well beyond future tolerance fails validation") func futureBeyondToleranceValidation() async throws {
+        let validation = FormValidation()
+        let tooFarFuture = Date().addingTimeInterval(12 * 60 * 60) // 12 hours in future
+
+        let result = validation.validateSessionDate(tooFarFuture)
+
+        #expect(result.isValid == false)
+    }
+
+    @Test("Date comfortably within 10-year minimum passes validation") func earliestAllowedDateValidation() async throws {
+        let validation = FormValidation()
+        let withinRange = Date().addingTimeInterval(-9 * 365 * 24 * 60 * 60) // ~9 years ago
+
+        let result = validation.validateSessionDate(withinRange)
+
+        #expect(result.isValid == true)
+    }
+
     @Test("Very old date fails validation with therapeutic message") func veryOldDateValidation() async throws {
         let validation = FormValidation()
         let veryOldDate = Calendar.current.date(byAdding: .year, value: -15, to: Date())!
