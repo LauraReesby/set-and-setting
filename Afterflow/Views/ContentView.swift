@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -88,7 +89,7 @@ struct ContentView: View {
                 let sessionDateFormatted = pending.session.sessionDate.formatted(date: .abbreviated, time: .omitted)
                 Text(
                     "Are you sure you want to delete this \(treatmentName) session from \(sessionDateFormatted)? " +
-                    "This action cannot be undone."
+                        "This action cannot be undone."
                 )
             }
         }
