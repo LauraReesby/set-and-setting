@@ -33,7 +33,7 @@ jobs:
 
         # Prefer an already-available iPhone simulator on iOS 18.x, else any iPhone
         AVAILABLE_JSON="$(xcrun simctl list --json devices available)"
-        read -r DEVICE_NAME DEVICE_OS <<< "$(echo "$AVAILABLE_JSON" \
+        IFS='|' read -r DEVICE_NAME DEVICE_OS <<< "$(echo "$AVAILABLE_JSON" \
           | jq -r '
               .devices
               | to_entries[]
@@ -41,10 +41,10 @@ jobs:
               | .value[]
               | select(.isAvailable == true and (.name | startswith("iPhone")) and ($runtime | contains("iOS-18-")))
               | "\(.name)|" + ($runtime | sub("^.*iOS-";"" ) | gsub("-";"."))
-            ' | head -n1 | awk -F'|' '{print $1, $2}')" || true
+            ' | head -n1)" || true
 
         if [ -z "$DEVICE_NAME" ] || [ "$DEVICE_NAME" = "null" ] || [ -z "$DEVICE_OS" ] || [ "$DEVICE_OS" = "null" ]; then
-          read -r DEVICE_NAME DEVICE_OS <<< "$(echo "$AVAILABLE_JSON" \
+          IFS='|' read -r DEVICE_NAME DEVICE_OS <<< "$(echo "$AVAILABLE_JSON" \
             | jq -r '
                 .devices
                 | to_entries[]
@@ -52,7 +52,7 @@ jobs:
                 | .value[]
                 | select(.isAvailable == true and (.name | startswith("iPhone")))
                 | "\(.name)|" + ($runtime | sub("^.*iOS-";"" ) | gsub("-";"."))
-              ' | head -n1 | awk -F'|' '{print $1, $2}')" || true
+              ' | head -n1)" || true
         fi
 
         if [ -z "$DEVICE_NAME" ] || [ "$DEVICE_NAME" = "null" ]; then
