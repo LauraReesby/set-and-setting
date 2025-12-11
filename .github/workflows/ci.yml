@@ -26,6 +26,11 @@ jobs:
       run: |
         set -eo pipefail
 
+        echo "== Available runtimes =="
+        xcrun simctl list runtimes
+        echo "== Available devices (iOS) =="
+        xcrun simctl list devices available
+
         # Prefer an already-available iPhone simulator
         AVAILABLE_JSON="$(xcrun simctl list --json devices available)"
         read -r DEVICE_UDID RUNTIME_ID <<< "$(echo "$AVAILABLE_JSON" \
@@ -37,6 +42,7 @@ jobs:
           RUNTIME="$(xcrun simctl list runtimes --json | jq -r '[.runtimes[] | select((.platform? // .platformName) == "iOS" and (.isAvailable == true or .availability == "(available)")) | {id: .identifier, version: .version}] | sort_by(.version | split(".") | map(tonumber)) | last')"
           RUNTIME_ID="$(echo "$RUNTIME" | jq -r '.id')"
           RUNTIME_VERSION="$(echo "$RUNTIME" | jq -r '.version')"
+          echo "Selected runtime: $RUNTIME_ID ($RUNTIME_VERSION)"
           if [ -z "$RUNTIME_ID" ] || [ "$RUNTIME_ID" = "null" ]; then
             echo "No available iOS runtimes found"; exit 1
           fi
@@ -50,9 +56,14 @@ jobs:
           if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
             echo "Failed to create simulator for runtime $RUNTIME_ID"; exit 1
           fi
+          echo "Created simulator: $DEVICE_UDID ($DEVICE_TYPE)"
         else
           # Derive version string from runtime identifier (e.g., com.apple.CoreSimulator.SimRuntime.iOS-18-2)
           RUNTIME_VERSION="$(echo "$RUNTIME_ID" | sed 's/.*iOS-//; s/-/./g')"
+        fi
+
+        if [ -z "$DEVICE_UDID" ] || [ "$DEVICE_UDID" = "null" ]; then
+          echo "No simulator UDID resolved"; exit 1
         fi
 
         DESTINATION="platform=iOS Simulator,id=${DEVICE_UDID}"
