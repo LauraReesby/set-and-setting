@@ -23,6 +23,7 @@ struct SessionListViewModel {
     var sortOption: SortOption = .newestFirst
     var treatmentFilter: PsychedelicTreatmentType?
     var searchText: String = ""
+    var selectedDate: Date?
 
     func applyFilters(to sessions: [TherapeuticSession]) -> [TherapeuticSession] {
         var filtered = sessions
@@ -52,6 +53,17 @@ struct SessionListViewModel {
         }
 
         return filtered
+    }
+
+    func markedDates(from sessions: [TherapeuticSession]) -> Set<Date> {
+        let cal = Calendar.current
+        return Set(sessions.map { cal.startOfDay(for: $0.sessionDate) })
+    }
+
+    func indexOfFirstSession(on date: Date, in sessions: [TherapeuticSession]) -> Int? {
+        let cal = Calendar.current
+        let day = cal.startOfDay(for: date)
+        return sessions.firstIndex { cal.isDate(cal.startOfDay(for: $0.sessionDate), inSameDayAs: day) }
     }
 
     var currentFilterDescription: String {

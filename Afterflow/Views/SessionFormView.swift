@@ -851,6 +851,36 @@ private struct FormMusicSection: View {
     }
 }
 
+private struct InlineValidationModifier: ViewModifier {
+    let validationState: FieldValidationState?
+
+    private var shouldHighlight: Bool {
+        self.validationState?.isValid == false
+    }
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .center) {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.orange.opacity(0.8), lineWidth: 2)
+                    .opacity(self.shouldHighlight ? 1 : 0)
+                    .allowsHitTesting(false)
+                    .animation(.easeInOut(duration: 0.2), value: self.shouldHighlight)
+            }
+            .accessibilityHint(
+                self.shouldHighlight
+                    ? Text("Required information missing")
+                    : Text("")
+            )
+    }
+}
+
+private extension View {
+    func inlineValidation(_ validationState: FieldValidationState?) -> some View {
+        self.modifier(InlineValidationModifier(validationState: validationState))
+    }
+}
+
 #Preview {
     let container: ModelContainer = {
         do {

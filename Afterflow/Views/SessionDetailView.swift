@@ -615,4 +615,3 @@ extension SessionDetailView {
     .modelContainer(container)
     .environment(store)
 }
-

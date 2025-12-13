@@ -7,11 +7,11 @@ struct TreatmentAvatar: View {
         self.type = type
     }
 
-    public var body: some View {
+    var body: some View {
         ZStack {
             // Base color with slight translucency
             Circle()
-                .fill(self.backgroundColor.opacity(0.85))
+                .fill(self.type.accentColor.opacity(0.85))
 
             // Gentle top-to-bottom white wash for depth
             Circle()
@@ -28,7 +28,7 @@ struct TreatmentAvatar: View {
                 .blendMode(.softLight)
 
             // Initials slightly softened
-            Text(self.initials)
+            Text(self.type.initials)
                 .font(.system(size: 14, weight: .heavy, design: .rounded))
                 .foregroundStyle(Color.white.opacity(0.92))
                 .shadow(color: .black.opacity(0.08), radius: 1, x: 0, y: 1)
@@ -63,33 +63,5 @@ struct TreatmentAvatar: View {
         .frame(width: 36, height: 36)
         .compositingGroup()
         .accessibilityIdentifier("treatmentAvatar")
-    }
-
-    private var backgroundColor: Color {
-        switch self.type {
-        case .ketamine: Color.cyan
-        case .psilocybin: Color.purple
-        case .lsd: Color.indigo
-        case .mdma: Color.orange
-        case .dmt: Color.teal
-        case .ayahuasca: Color.brown
-        case .mescaline: Color.green
-        case .cannabis: Color.mint
-        case .other: Color.gray
-        }
-    }
-
-    private var initials: String {
-        switch self.type {
-        case .ketamine: "K"
-        case .psilocybin: "P"
-        case .lsd: "L"
-        case .mdma: "MD"
-        case .dmt: "D"
-        case .ayahuasca: "A"
-        case .mescaline: "ME"
-        case .cannabis: "C"
-        case .other: "O"
-        }
     }
 }

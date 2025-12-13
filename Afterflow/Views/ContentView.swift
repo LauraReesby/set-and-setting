@@ -276,45 +276,24 @@ private struct SessionListSection: View {
     let onExampleImport: () -> Void
     let onDebugNotification: () -> Void
 
+    @State private var scrollTarget: UUID?
+    @State private var calendarMonth: Date = Calendar.current.startOfMonth(for: Date())
+    @State private var calendarMode: CollapsibleCalendarView.DisplayMode = .twoWeeks
+    @State private var pendingCalendarMonth: Date?
+    @State private var suppressListSync = false
+
     var body: some View {
         ZStack(alignment: .bottom) {
             NavigationStack(path: self.$navigationPath) {
-                List {
-                    ForEach(Array(self.sessions.enumerated()), id: \.element.id) { index, session in
-                        ZStack(alignment: .leading) {
-                            SessionRowView(session: session, dateText: session.sessionDate.relativeSessionLabel)
-                                .padding(.vertical, -4)
-                                .accessibilityIdentifier("sessionRow-\(session.id.uuidString)")
-                            NavigationLink(value: session.id) {
-                                EmptyView()
-                            }
-                            .opacity(0)
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                self.onDelete(IndexSet(integer: index))
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        } preview: {
-                            SessionDetailView(session: session)
-                                .frame(width: 350, height: 600)
-                                .environment(self.sessionStore)
-                        }
-                        .listRowSeparator(index == 0 ? .hidden : .visible, edges: .top)
-                        .listRowSeparator(.visible, edges: .bottom)
-                    }
-                    .onDelete(perform: self.onDelete)
+                VStack(spacing: 0) {
+                    self.buildCalendarView()
+                    self.sessionList()
                 }
-                .scrollContentBackground(.hidden)
-                .background(Color(.systemBackground))
-                .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
-                .listSectionSeparator(.hidden)
                 .toolbar { self.toolbarContent }
-                .navigationTitle("Sessions")
-                .listStyle(.plain)
                 .toolbarBackground(.visible, for: .automatic)
-                .scrollDismissesKeyboard(.immediately)
+                .navigationTitle("Sessions")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.visible, for: .navigationBar)
                 .navigationDestination(for: UUID.self) { sessionID in
                     if let session = self.sessions.first(where: { $0.id == sessionID }) {
                         SessionDetailView(session: session)
@@ -325,6 +304,150 @@ private struct SessionListSection: View {
 
             BottomControls(listViewModel: self.$listViewModel, onAdd: self.onAdd)
         }
+    }
+
+    private func buildCalendarView() -> some View {
+        CollapsibleCalendarView(
+            selectedDate: self.$listViewModel.selectedDate,
+            currentMonth: self.$calendarMonth,
+            mode: self.$calendarMode,
+            markedDates: self.calendarMarkers(),
+            onSelect: { date in
+                self.focusCalendar(on: date)
+            }
+        )
+        .padding(.bottom, 4)
+    }
+
+    private func calendarMarkers() -> [Date: Color] {
+        let calendar = Calendar.current
+        return self.sessions.reduce(into: [:]) { result, session in
+            let day = calendar.startOfDay(for: session.sessionDate)
+            if result[day] == nil {
+                result[day] = session.treatmentType.accentColor
+            }
+        }
+    }
+
+    private func focusCalendar(on date: Date) {
+        if let idx = self.listViewModel.indexOfFirstSession(on: date, in: self.sessions) {
+            let session = self.sessions[idx]
+            self.calendarMonth = Calendar.current.startOfMonth(for: session.sessionDate)
+            self.pendingCalendarMonth = self.calendarMonth
+            self.scrollTarget = session.id
+        }
+    }
+
+    @ViewBuilder private func sessionList() -> some View {
+        ScrollViewReader { proxy in
+            List {
+                ForEach(Array(self.sessions.enumerated()), id: \.element.id) { index, session in
+                    self.buildSessionRow(session: session, index: index)
+                }
+                .onDelete(perform: self.onDelete)
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color(.systemBackground))
+            .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+            .listSectionSeparator(.hidden)
+            .listStyle(.plain)
+            .scrollBounceBehavior(.basedOnSize)
+            .coordinateSpace(name: "listScroll")
+            .simultaneousGesture(self.calendarCollapseGesture())
+            .toolbarBackground(.visible, for: .automatic)
+            .scrollDismissesKeyboard(.immediately)
+            .onChange(of: self.scrollTarget) { _, target in
+                guard let target else { return }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    proxy.scrollTo("session-\(target.uuidString)", anchor: .top)
+                }
+            }
+            .onPreferenceChange(TopVisibleDatePreferenceKey.self) { date in
+                guard let date else { return }
+                if self.suppressListSync {
+                    self.suppressListSync = false
+                    return
+                }
+                let monthStart = Calendar.current.startOfMonth(for: date)
+                if let pending = self.pendingCalendarMonth,
+                   Calendar.current.isDate(monthStart, equalTo: pending, toGranularity: .month) {
+                    self.pendingCalendarMonth = nil
+                    return
+                }
+                if self.pendingCalendarMonth != nil {
+                    return
+                }
+                if monthStart != self.calendarMonth {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.calendarMonth = monthStart
+                    }
+                }
+            }
+            .onAppear {
+                if let firstSession = self.sessions.first {
+                    self.scrollTarget = firstSession.id
+                }
+            }
+            .onChange(of: self.calendarMonth) { _, _ in
+                if self.pendingCalendarMonth == nil {
+                    self.suppressListSync = true
+                }
+            }
+        }
+    }
+
+    private func calendarCollapseGesture() -> some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let velocity = value.translation.height
+                // if velocity > 50 && self.calendarMode == .twoWeeks {
+                //     withAnimation(.easeInOut(duration: 0.3)) {
+                //         self.calendarMode = .month
+                //     }
+                // } else
+
+                if velocity < -50, self.calendarMode == .month {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        self.calendarMode = .twoWeeks
+                    }
+                }
+            }
+    }
+
+    private func buildSessionRow(session: TherapeuticSession, index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ZStack(alignment: .leading) {
+                SessionRowView(session: session, dateText: session.sessionDate.relativeSessionLabel)
+                    .padding(.vertical, -4)
+                    .accessibilityIdentifier("sessionRow-\(session.id.uuidString)")
+                NavigationLink(value: session.id) { EmptyView() }
+                    .opacity(0)
+            }
+        }
+        .background(
+            GeometryReader { geo in
+                let frame = geo.frame(in: .named("listScroll"))
+                let isCandidate = frame.minY > 0 && frame.minY < 300
+                let candidateDate: Date? = isCandidate ? session.sessionDate : nil
+
+                Color.clear
+                    .preference(key: TopVisibleDatePreferenceKey.self, value: candidateDate)
+            }
+        )
+        .id("session-\(session.id.uuidString)")
+        .contextMenu {
+            Button(role: .destructive) {
+                self.onDelete(IndexSet(integer: index))
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        } preview: {
+            SessionDetailView(session: session)
+                .frame(width: 350, height: 600)
+                .environment(self.sessionStore)
+        }
+        .listRowSeparator(index == 0 ? .hidden : .visible, edges: .top)
+        .listRowSeparator(.visible, edges: .bottom)
     }
 
     @ToolbarContentBuilder
@@ -555,6 +678,20 @@ private struct SessionRowView: View {
             }
         }
     }
+}
+
+private struct TopVisibleDatePreferenceKey: PreferenceKey {
+    static var defaultValue: Date?
+    static func reduce(value: inout Date?, nextValue: () -> Date?) {
+        if value == nil {
+            value = nextValue()
+        }
+    }
+}
+
+private struct ListScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }
 
 private extension ContentView {
@@ -864,4 +1001,3 @@ private func makePreviewContainerAndStore() -> (container: ModelContainer, store
         fatalError("Failed to create preview container: \(error)")
     }
 }
-
